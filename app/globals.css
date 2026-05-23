@@ -1,0 +1,176 @@
+@import "tailwindcss";
+
+/* =====================================================================
+   Stitch design tokens → Tailwind v4 @theme block.
+   Mirrors the project's design-md (colors, typography, spacing, radius).
+   ===================================================================== */
+
+@theme {
+  /* ---- colors ---------------------------------------------------- */
+  --color-bg-page: #f8fafc;
+  --color-border-subtle: #e2e8f0;
+
+  --color-surface: #faf8ff;
+  --color-surface-dim: #d9d9e5;
+  --color-surface-bright: #faf8ff;
+  --color-surface-variant: #e1e2ed;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f3f3fe;
+  --color-surface-container: #ededf9;
+  --color-surface-container-high: #e7e7f3;
+  --color-surface-container-highest: #e1e2ed;
+
+  --color-on-surface: #191b23;
+  --color-on-surface-variant: #434655;
+  --color-inverse-surface: #2e3039;
+  --color-inverse-on-surface: #f0f0fb;
+
+  --color-outline: #737686;
+  --color-outline-variant: #c3c6d7;
+
+  --color-primary: #004ac6;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #2563eb;
+  --color-on-primary-container: #eeefff;
+  --color-inverse-primary: #b4c5ff;
+  --color-primary-fixed: #dbe1ff;
+  --color-primary-fixed-dim: #b4c5ff;
+  --color-on-primary-fixed: #00174b;
+  --color-on-primary-fixed-variant: #003ea8;
+
+  --color-secondary: #712ae2;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #8a4cfc;
+  --color-on-secondary-container: #fffbff;
+  --color-secondary-fixed: #eaddff;
+  --color-secondary-fixed-dim: #d2bbff;
+  --color-on-secondary-fixed: #25005a;
+  --color-on-secondary-fixed-variant: #5a00c6;
+
+  --color-tertiary: #943700;
+  --color-on-tertiary: #ffffff;
+  --color-tertiary-container: #bc4800;
+  --color-on-tertiary-container: #ffede6;
+  --color-tertiary-fixed: #ffdbcd;
+  --color-tertiary-fixed-dim: #ffb596;
+  --color-on-tertiary-fixed: #360f00;
+  --color-on-tertiary-fixed-variant: #7d2d00;
+
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  --color-error-container: #ffdad6;
+  --color-on-error-container: #93000a;
+
+  --color-status-success: #16a34a;
+  --color-status-warning: #d97706;
+  --color-status-danger: #dc2626;
+  --color-status-neutral: #64748b;
+
+  --color-proposal-violet: #7c3aed;
+  --color-proposal-violet-soft: #f5f3ff;
+
+  /* ---- typography ------------------------------------------------ */
+  --font-display: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-headline: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-title: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body-lg: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-body-sm: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-table-cell: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-label: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-status-badge: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-data-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --text-display: 24px;
+  --text-display--line-height: 32px;
+  --text-display--font-weight: 600;
+  --text-display--letter-spacing: -0.02em;
+
+  --text-headline: 18px;
+  --text-headline--line-height: 28px;
+  --text-headline--font-weight: 600;
+
+  --text-title: 16px;
+  --text-title--line-height: 24px;
+  --text-title--font-weight: 600;
+
+  --text-body-lg: 15px;
+  --text-body-lg--line-height: 22px;
+
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 20px;
+
+  --text-table-cell: 14px;
+  --text-table-cell--line-height: 20px;
+
+  --text-data-mono: 13px;
+  --text-data-mono--line-height: 20px;
+
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-label--font-weight: 500;
+  --text-label--letter-spacing: 0.01em;
+
+  --text-status-badge: 11px;
+  --text-status-badge--line-height: 12px;
+  --text-status-badge--font-weight: 600;
+
+  /* ---- spacing / sizing ------------------------------------------ */
+  --spacing-gutter: 1.5rem;
+  --spacing-sidebar: 240px;
+  --spacing-sidebar-collapsed: 64px;
+  --spacing-container-max: 1600px;
+
+  /* ---- radius ---------------------------------------------------- */
+  --radius-sm: 0.125rem;
+  --radius: 0.25rem;
+  --radius-md: 0.375rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+/* Google fonts (Inter, JetBrains Mono, Material Symbols Outlined) are
+   loaded via <link> tags in app/layout.tsx. CSS @import rules must come
+   before any other at-rule (except @charset / @layer) per the CSS spec
+   — putting them after @theme above would silently no-op. */
+
+/* Base */
+html,
+body {
+  background: var(--color-bg-page);
+  color: var(--color-on-surface);
+  font-family: var(--font-body-lg);
+  font-size: 15px;
+  line-height: 22px;
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  /* `liga` activates ligatures — without it the literal ligature key
+     (e.g. "warehouse") would not be substituted by the glyph. */
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Tabular numbers everywhere a number can appear in a table */
+.tnum,
+.font-data-mono {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle focus ring matching design system */
+:where(input, select, textarea, button):focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}

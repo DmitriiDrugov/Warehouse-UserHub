@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Warehouse UserHub - Natural-language Query Console</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-surface": "#191b23",
+                      "surface-container-high": "#e7e7f3",
+                      "bg-page": "#F8FAFC",
+                      "on-tertiary": "#ffffff",
+                      "on-surface-variant": "#434655",
+                      "surface-container-highest": "#e1e2ed",
+                      "on-primary-container": "#eeefff",
+                      "primary": "#004ac6",
+                      "secondary-container": "#8a4cfc",
+                      "on-tertiary-container": "#ffede6",
+                      "proposal-violet": "#7C3AED",
+                      "surface-container": "#ededf9",
+                      "secondary": "#712ae2",
+                      "surface-bright": "#faf8ff",
+                      "tertiary-fixed-dim": "#ffb596",
+                      "surface-dim": "#d9d9e5",
+                      "status-danger": "#DC2626",
+                      "on-error-container": "#93000a",
+                      "background": "#faf8ff",
+                      "error": "#ba1a1a",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-fixed": "#ffdbcd",
+                      "on-tertiary-fixed": "#360f00",
+                      "on-primary-fixed-variant": "#003ea8",
+                      "primary-fixed-dim": "#b4c5ff",
+                      "on-secondary": "#ffffff",
+                      "status-success": "#16A34A",
+                      "border-subtle": "#E2E8F0",
+                      "primary-fixed": "#dbe1ff",
+                      "on-background": "#191b23",
+                      "surface-tint": "#0053db",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed": "#00174b",
+                      "on-secondary-fixed-variant": "#5a00c6",
+                      "status-neutral": "#64748B",
+                      "on-tertiary-fixed-variant": "#7d2d00",
+                      "secondary-fixed-dim": "#d2bbff",
+                      "on-secondary-fixed": "#25005a",
+                      "surface": "#faf8ff",
+                      "status-warning": "#D97706",
+                      "tertiary": "#943700",
+                      "inverse-primary": "#b4c5ff",
+                      "primary-container": "#2563eb",
+                      "surface-variant": "#e1e2ed",
+                      "on-secondary-container": "#fffbff",
+                      "secondary-fixed": "#eaddff",
+                      "error-container": "#ffdad6",
+                      "tertiary-container": "#bc4800",
+                      "outline": "#737686",
+                      "surface-container-low": "#f3f3fe",
+                      "inverse-surface": "#2e3039",
+                      "inverse-on-surface": "#f0f0fb",
+                      "on-error": "#ffffff",
+                      "outline-variant": "#c3c6d7"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "gutter": "1.5rem",
+                      "sidebar-width": "240px",
+                      "sidebar-collapsed": "64px",
+                      "table-row-compact": "2.25rem",
+                      "table-row-comfortable": "3rem",
+                      "container-max": "1600px"
+              },
+              "fontFamily": {
+                      "display": ["Inter"],
+                      "table-cell": ["Inter"],
+                      "data-mono": ["JetBrains Mono"],
+                      "label": ["Inter"],
+                      "body-sm": ["Inter"],
+                      "title": ["Inter"],
+                      "status-badge": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline": ["Inter"]
+              },
+              "fontSize": {
+                      "display": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                      "table-cell": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "data-mono": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "label": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                      "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                      "title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                      "status-badge": ["11px", { "lineHeight": "12px", "fontWeight": "600" }],
+                      "body-lg": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                      "headline": ["18px", { "lineHeight": "28px", "fontWeight": "600" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        /* Hide scrollbar for cleaner look in specific areas if needed, though standard is fine */
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Subtle transition for states */
+        .fade-enter { opacity: 0; transition: opacity 300ms ease-in; }
+        .fade-enter-active { opacity: 1; }
+    </style>
+</head>
+<body class="bg-bg-page text-on-background font-body-sm min-h-screen antialiased flex flex-col">
+<!-- TopNavBar Shared Component -->
+<header class="bg-surface-container-lowest text-primary font-body-sm text-body-sm flex justify-between items-center h-14 px-gutter w-full sticky top-0 z-40 border-b border-border-subtle">
+<div class="flex items-center gap-4">
+<span class="font-headline text-headline text-on-surface font-bold tracking-tight">Warehouse UserHub</span>
+</div>
+<div class="flex items-center flex-1 max-w-md mx-8">
+<!-- Search Bar on_left logic -> placed here -->
+<div class="relative w-full">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-status-neutral text-[20px]">search</span>
+<input class="w-full pl-10 pr-4 py-1.5 bg-surface-container-low border-transparent focus:border-primary focus:ring-1 focus:ring-primary rounded-full font-body-sm text-body-sm text-on-surface placeholder:text-status-neutral transition-all" placeholder="Global search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low rounded-full transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<div class="h-6 w-px bg-border-subtle mx-2"></div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded-DEFAULT font-label text-label hover:bg-primary-container transition-colors flex items-center gap-2">
+                Check In
+            </button>
+<img alt="Operator identity chip" class="w-8 h-8 rounded-full ml-2 border border-border-subtle" data-alt="A small circular avatar placeholder image showing the letters Op on a light gray background, representing an operator identity chip in a professional enterprise dashboard." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAer7pBUdd0i7hmvJMSDhC9aUyOnvoFTG1b-3_nbvC9kOuO9z5dhXD7k-lclQ_aMUYy-AEYkQSQScYe342JzhqW6WQwU0aqRHTjDYa9dCmDCrjMeiaicyPLPXtt5tqqf-JCUo0TsmJ149uBH_ynpHphx25kK2ypcLMMWDnvCDEstPSG75ZuaAv8KEakfB0QIn5PAocWB-WOkh5BSxfPHv8-SDCHtyTnF6iST2pmwR-t_jP4hh5cODfx77ALzjV86ocb7eka29_FXg"/>
+</div>
+</header>
+<div class="flex flex-1 relative">
+<!-- SideNavBar Shared Component -->
+<nav class="bg-surface-container-low text-primary font-label text-label docked full-height left-0 w-sidebar-width border-r border-border-subtle flex flex-col h-screen fixed left-0 top-0 pt-14 z-30">
+<div class="p-6 pb-2">
+<div class="flex items-center gap-3 mb-1">
+<div class="w-8 h-8 bg-surface-tint rounded-DEFAULT flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[18px]">warehouse</span>
+</div>
+<span class="font-headline text-headline text-primary">Main Menu</span>
+</div>
+<span class="text-status-neutral font-label text-label opacity-70 ml-11 block">v2.4.0-stable</span>
+</div>
+<div class="flex flex-col flex-1 py-4 overflow-y-auto hide-scrollbar">
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">dashboard</span>
+                    Dashboard
+                </a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">group</span>
+                    Workforce
+                </a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">calendar_today</span>
+                    Schedules
+                </a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">fact_check</span>
+                    Audits
+                </a>
+<a class="flex items-center gap-3 px-6 py-3 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">inventory_2</span>
+                    Inventory
+                </a>
+<!-- Active Tab: Analytics / Query Console -->
+<a class="flex items-center gap-3 px-6 py-3 bg-surface-container-high text-primary font-bold border-r-4 border-primary translate-x-1 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">analytics</span>
+                    Analytics
+                </a>
+</div>
+<div class="mt-auto border-t border-border-subtle py-4 flex flex-col">
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">support_agent</span>
+                    Support
+                </a>
+<a class="flex items-center gap-3 px-6 py-2.5 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all group" href="#">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">settings</span>
+                    Settings
+                </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="ml-sidebar-width flex-1 p-gutter w-full max-w-container-max mx-auto flex flex-col gap-6">
+<!-- Page Header -->
+<div class="flex items-end justify-between mt-4">
+<div>
+<h1 class="font-display text-display text-on-surface">Data Explorer</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">Query operational data using natural language.</p>
+</div>
+<div class="flex items-center gap-2 text-status-neutral font-label text-label">
+<span class="material-symbols-outlined text-[16px]">info</span>
+                    Powered by AI Query Assistant
+                </div>
+</div>
+<!-- Natural Language Query Input Area -->
+<div class="bg-surface-container-lowest rounded-xl border border-border-subtle shadow-sm p-1.5 focus-within:border-primary focus-within:ring-1 focus-within:ring-primary transition-all duration-200 relative z-10 flex flex-col">
+<div class="flex items-start">
+<div class="pl-4 pt-3.5 pb-3 flex items-center justify-center text-secondary-container">
+<span class="material-symbols-outlined text-[24px]">auto_awesome</span>
+</div>
+<textarea class="w-full bg-transparent border-none focus:ring-0 font-body-lg text-body-lg text-on-surface placeholder:text-status-neutral resize-none py-3.5 px-3 min-h-[52px]" id="nl-input" placeholder="e.g., Show me all pickers with an efficiency rate below 85% this week..." rows="1"></textarea>
+<div class="pr-2 pt-2 pb-2 flex items-center">
+<button class="bg-primary text-on-primary hover:bg-primary-container px-6 py-2.5 rounded-lg font-label text-label transition-colors flex items-center gap-2 h-full shadow-sm" id="run-query-btn">
+<span class="material-symbols-outlined text-[18px]">play_arrow</span>
+                            Run
+                        </button>
+</div>
+</div>
+<!-- Suggestion Chips -->
+<div class="px-4 pb-3 pt-1 flex gap-2 overflow-x-auto hide-scrollbar border-t border-surface-container-low mt-1">
+<button class="suggestion-chip whitespace-nowrap bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant font-label text-label px-3 py-1.5 rounded-full border border-border-subtle transition-colors">
+                        Overtime hours last month
+                    </button>
+<button class="suggestion-chip whitespace-nowrap bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant font-label text-label px-3 py-1.5 rounded-full border border-border-subtle transition-colors">
+                        Inventory discrepancies &gt; 5%
+                    </button>
+<button class="suggestion-chip whitespace-nowrap bg-surface-container-low hover:bg-surface-container-high text-on-surface-variant font-label text-label px-3 py-1.5 rounded-full border border-border-subtle transition-colors">
+                        Recent safety incidents by zone
+                    </button>
+</div>
+</div>
+<!-- Trust & Transparency: Generated SQL Panel -->
+<details class="group bg-surface-container-lowest rounded-DEFAULT border border-border-subtle" id="sql-panel" style="display: none;">
+<summary class="flex items-center justify-between cursor-pointer p-3 font-label text-label text-on-surface-variant hover:bg-surface-container-low transition-colors list-none select-none">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px] text-primary">database</span>
+<span>Generated SQL Query</span>
+<span class="bg-surface-container-high text-on-surface-variant px-1.5 py-0.5 rounded-DEFAULT text-[10px] uppercase font-bold tracking-wider ml-2">Read Only</span>
+</div>
+<div class="flex items-center gap-3">
+<button class="text-primary hover:text-primary-container flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onclick="event.preventDefault(); navigator.clipboard.writeText(document.getElementById('sql-code').innerText);">
+<span class="material-symbols-outlined text-[16px]">content_copy</span>
+<span class="text-[11px]">Copy</span>
+</button>
+<span class="material-symbols-outlined text-[20px] transition-transform duration-200 group-open:-rotate-180">expand_more</span>
+</div>
+</summary>
+<div class="p-4 bg-surface-container-low border-t border-border-subtle overflow-x-auto">
+<pre><code class="font-data-mono text-data-mono text-on-surface leading-relaxed whitespace-pre-wrap" id="sql-code"><span class="text-secondary">SELECT</span> 
+    e.employee_id, 
+    e.first_name, 
+    e.last_name, 
+    e.role,
+    p.efficiency_rate,
+    p.zone_assignment
+<span class="text-secondary">FROM</span> 
+    warehouse_employees e
+<span class="text-secondary">JOIN</span> 
+    performance_metrics p <span class="text-secondary">ON</span> e.employee_id = p.employee_id
+<span class="text-secondary">WHERE</span> 
+    e.role = <span class="text-status-success">'Picker'</span> 
+    <span class="text-secondary">AND</span> p.efficiency_rate &lt; 0.85
+    <span class="text-secondary">AND</span> p.metric_date &gt;= <span class="text-secondary">CURRENT_DATE</span> - <span class="text-secondary">INTERVAL</span> '7 days'
+<span class="text-secondary">ORDER BY</span> 
+    p.efficiency_rate <span class="text-secondary">ASC</span>;</code></pre>
+</div>
+</details>
+<!-- Results Canvas -->
+<div class="bg-surface-container-lowest rounded-lg border border-border-subtle flex flex-col flex-1 min-h-[400px] overflow-hidden">
+<!-- Table Toolbar -->
+<div class="flex items-center justify-between p-4 border-b border-border-subtle bg-surface-bright">
+<h2 class="font-title text-title text-on-surface flex items-center gap-2">
+                        Query Results
+                        <span class="font-label text-label text-status-neutral font-normal hidden bg-surface-container-high px-2 py-0.5 rounded-full" id="result-count">14 rows</span>
+</h2>
+<div class="flex items-center gap-3">
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT transition-colors disabled:opacity-50" disabled="" id="export-btn" title="Export CSV">
+<span class="material-symbols-outlined text-[20px]">download</span>
+</button>
+<div class="h-4 w-px bg-border-subtle"></div>
+<button class="p-1.5 text-on-surface-variant hover:bg-surface-container-high rounded-DEFAULT transition-colors" title="Toggle Density">
+<span class="material-symbols-outlined text-[20px]">density_medium</span>
+</button>
+</div>
+</div>
+<!-- STATE: Empty (Initial) -->
+<div class="flex-1 flex flex-col items-center justify-center p-12 text-center" id="state-empty">
+<div class="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mb-4 text-status-neutral">
+<span class="material-symbols-outlined text-[32px]">travel_explore</span>
+</div>
+<h3 class="font-title text-title text-on-surface mb-2">Ready to explore</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-md">Type a question in plain English above to query warehouse metrics, workforce data, or inventory logs. The AI will translate it to SQL and fetch the results.</p>
+</div>
+<!-- STATE: Loading -->
+<div class="hidden flex-1 flex flex-col p-0" id="state-loading">
+<div class="w-full">
+<!-- Skeleton Header -->
+<div class="flex border-b border-border-subtle px-4 py-3 bg-surface-bright gap-4">
+<div class="h-4 w-24 bg-surface-container-high rounded animate-pulse"></div>
+<div class="h-4 w-32 bg-surface-container-high rounded animate-pulse"></div>
+<div class="h-4 w-20 bg-surface-container-high rounded animate-pulse"></div>
+<div class="h-4 w-40 bg-surface-container-high rounded animate-pulse"></div>
+</div>
+<!-- Skeleton Rows -->
+<div class="flex flex-col">
+<div class="flex items-center border-b border-border-subtle px-4 h-table-row-compact gap-4">
+<div class="h-3 w-16 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-24 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-12 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-32 bg-surface-container rounded animate-pulse"></div>
+</div>
+<div class="flex items-center border-b border-border-subtle px-4 h-table-row-compact gap-4">
+<div class="h-3 w-20 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-20 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-16 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-24 bg-surface-container rounded animate-pulse"></div>
+</div>
+<div class="flex items-center border-b border-border-subtle px-4 h-table-row-compact gap-4">
+<div class="h-3 w-16 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-28 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-14 bg-surface-container rounded animate-pulse"></div>
+<div class="h-3 w-36 bg-surface-container rounded animate-pulse"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- STATE: Results Data Table -->
+<div class="hidden flex-1 overflow-auto" id="state-results">
+<table class="w-full text-left border-collapse">
+<thead class="bg-surface-bright sticky top-0 z-10 border-b border-border-subtle shadow-sm">
+<tr>
+<th class="py-3 px-4 font-label text-label text-status-neutral font-medium w-[120px]">
+<div class="flex items-center gap-1 cursor-pointer hover:text-on-surface transition-colors">
+                                        EMP_ID <span class="material-symbols-outlined text-[14px]">arrow_upward</span>
+</div>
+</th>
+<th class="py-3 px-4 font-label text-label text-status-neutral font-medium">Name</th>
+<th class="py-3 px-4 font-label text-label text-status-neutral font-medium">Role</th>
+<th class="py-3 px-4 font-label text-label text-status-neutral font-medium">Efficiency Rate</th>
+<th class="py-3 px-4 font-label text-label text-status-neutral font-medium">Zone</th>
+<th class="py-3 px-4 font-label text-label text-status-neutral font-medium w-[60px]"></th>
+</tr>
+</thead>
+<tbody class="font-table-cell text-table-cell text-on-surface">
+<tr class="border-b border-border-subtle hover:bg-surface-container-low transition-colors h-table-row-compact">
+<td class="py-2 px-4 font-data-mono text-data-mono text-status-neutral">W-8472</td>
+<td class="py-2 px-4 font-medium">Sarah Jenkins</td>
+<td class="py-2 px-4"><span class="bg-surface-container-highest px-2 py-0.5 rounded-full font-status-badge text-status-badge">Picker</span></td>
+<td class="py-2 px-4">
+<div class="flex items-center gap-2">
+<span class="text-status-danger font-medium">78%</span>
+<div class="w-16 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-status-danger h-full" style="width: 78%"></div>
+</div>
+</div>
+</td>
+<td class="py-2 px-4">Zone A (Cold Storage)</td>
+<td class="py-2 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary p-1"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+<tr class="border-b border-border-subtle hover:bg-surface-container-low transition-colors h-table-row-compact">
+<td class="py-2 px-4 font-data-mono text-data-mono text-status-neutral">W-9103</td>
+<td class="py-2 px-4 font-medium">Michael Chen</td>
+<td class="py-2 px-4"><span class="bg-surface-container-highest px-2 py-0.5 rounded-full font-status-badge text-status-badge">Picker</span></td>
+<td class="py-2 px-4">
+<div class="flex items-center gap-2">
+<span class="text-status-warning font-medium">82%</span>
+<div class="w-16 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-status-warning h-full" style="width: 82%"></div>
+</div>
+</div>
+</td>
+<td class="py-2 px-4">Zone C (Bulk)</td>
+<td class="py-2 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary p-1"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+<tr class="border-b border-border-subtle hover:bg-surface-container-low transition-colors h-table-row-compact">
+<td class="py-2 px-4 font-data-mono text-data-mono text-status-neutral">W-7741</td>
+<td class="py-2 px-4 font-medium">Elena Rodriguez</td>
+<td class="py-2 px-4"><span class="bg-surface-container-highest px-2 py-0.5 rounded-full font-status-badge text-status-badge">Picker</span></td>
+<td class="py-2 px-4">
+<div class="flex items-center gap-2">
+<span class="text-status-danger font-medium">74%</span>
+<div class="w-16 h-1.5 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="bg-status-danger h-full" style="width: 74%"></div>
+</div>
+</div>
+</td>
+<td class="py-2 px-4">Zone B (Small Parts)</td>
+<td class="py-2 px-4 text-right">
+<button class="text-on-surface-variant hover:text-primary p-1"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</main>
+</div>
+<!-- Interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const runBtn = document.getElementById('run-query-btn');
+            const inputField = document.getElementById('nl-input');
+            const chips = document.querySelectorAll('.suggestion-chip');
+            
+            const stateEmpty = document.getElementById('state-empty');
+            const stateLoading = document.getElementById('state-loading');
+            const stateResults = document.getElementById('state-results');
+            
+            const sqlPanel = document.getElementById('sql-panel');
+            const resultCount = document.getElementById('result-count');
+            const exportBtn = document.getElementById('export-btn');
+
+            // Handle suggestion chips
+            chips.forEach(chip => {
+                chip.addEventListener('click', () => {
+                    inputField.value = chip.innerText;
+                    inputField.focus();
+                });
+            });
+
+            // Handle run query simulation
+            runBtn.addEventListener('click', () => {
+                if(!inputField.value.trim()) return;
+
+                // 1. Show Loading
+                stateEmpty.classList.add('hidden');
+                stateResults.classList.add('hidden');
+                sqlPanel.style.display = 'none';
+                resultCount.classList.add('hidden');
+                exportBtn.disabled = true;
+                
+                stateLoading.classList.remove('hidden');
+                runBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Running';
+                runBtn.disabled = true;
+
+                // 2. Simulate network delay (1.5s)
+                setTimeout(() => {
+                    // 3. Show Results
+                    stateLoading.classList.add('hidden');
+                    stateResults.classList.remove('hidden');
+                    
+                    // Show transparency panel
+                    sqlPanel.style.display = 'block';
+                    sqlPanel.open = true; // Auto open on first run
+                    
+                    // Update toolbar
+                    resultCount.classList.remove('hidden');
+                    exportBtn.disabled = false;
+                    
+                    // Reset button
+                    runBtn.innerHTML = '<span class="material-symbols-outlined text-[18px]">play_arrow</span> Run';
+                    runBtn.disabled = false;
+                }, 1500);
+            });
+
+            // Auto-resize textarea
+            inputField.addEventListener('input', function() {
+                this.style.height = 'auto';
+                this.style.height = (this.scrollHeight) + 'px';
+            });
+        });
+    </script>
+</body></html>

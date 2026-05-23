@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Warehouse UserHub - Checklist</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-surface": "#191b23",
+                    "surface-container-high": "#e7e7f3",
+                    "bg-page": "#F8FAFC",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#434655",
+                    "surface-container-highest": "#e1e2ed",
+                    "on-primary-container": "#eeefff",
+                    "primary": "#004ac6",
+                    "secondary-container": "#8a4cfc",
+                    "on-tertiary-container": "#ffede6",
+                    "proposal-violet": "#7C3AED",
+                    "surface-container": "#ededf9",
+                    "secondary": "#712ae2",
+                    "surface-bright": "#faf8ff",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "surface-dim": "#d9d9e5",
+                    "status-danger": "#DC2626",
+                    "on-error-container": "#93000a",
+                    "background": "#faf8ff",
+                    "error": "#ba1a1a",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-tertiary-fixed": "#360f00",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "on-secondary": "#ffffff",
+                    "status-success": "#16A34A",
+                    "border-subtle": "#E2E8F0",
+                    "primary-fixed": "#dbe1ff",
+                    "on-background": "#191b23",
+                    "surface-tint": "#0053db",
+                    "on-primary": "#ffffff",
+                    "on-primary-fixed": "#00174b",
+                    "on-secondary-fixed-variant": "#5a00c6",
+                    "status-neutral": "#64748B",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "secondary-fixed-dim": "#d2bbff",
+                    "on-secondary-fixed": "#25005a",
+                    "surface": "#faf8ff",
+                    "status-warning": "#D97706",
+                    "tertiary": "#943700",
+                    "inverse-primary": "#b4c5ff",
+                    "primary-container": "#2563eb",
+                    "surface-variant": "#e1e2ed",
+                    "on-secondary-container": "#fffbff",
+                    "secondary-fixed": "#eaddff",
+                    "error-container": "#ffdad6",
+                    "tertiary-container": "#bc4800",
+                    "outline": "#737686",
+                    "surface-container-low": "#f3f3fe",
+                    "inverse-surface": "#2e3039",
+                    "inverse-on-surface": "#f0f0fb",
+                    "on-error": "#ffffff",
+                    "outline-variant": "#c3c6d7"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "gutter": "1.5rem",
+                    "sidebar-width": "240px",
+                    "sidebar-collapsed": "64px",
+                    "table-row-compact": "2.25rem",
+                    "table-row-comfortable": "3rem",
+                    "container-max": "1600px"
+            },
+            "fontFamily": {
+                    "display": ["Inter"],
+                    "table-cell": ["Inter"],
+                    "data-mono": ["JetBrains Mono"],
+                    "label": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "title": ["Inter"],
+                    "status-badge": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline": ["Inter"]
+            },
+            "fontSize": {
+                    "display": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                    "table-cell": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                    "data-mono": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                    "label": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                    "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                    "title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                    "status-badge": ["11px", { "lineHeight": "12px", "fontWeight": "600" }],
+                    "body-lg": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                    "headline": ["18px", { "lineHeight": "28px", "fontWeight": "600" }]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { background-color: theme('colors.bg-page'); color: theme('colors.on-surface'); }
+    </style>
+</head>
+<body class="flex bg-bg-page h-screen overflow-hidden text-on-surface">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-on-surface text-primary dark:text-primary-fixed-dim font-label text-label docked full-height left-0 w-sidebar-width border-r border-border-subtle dark:border-outline-variant flat no shadows flex flex-col h-screen fixed left-0 top-0 pt-14 z-30 hidden md:flex">
+<div class="px-gutter pb-6">
+<h1 class="font-headline text-headline text-primary dark:text-primary-fixed">Main Menu</h1>
+<p class="text-on-surface-variant text-label">v2.4.0-stable</p>
+</div>
+<ul class="flex-1 space-y-1 px-4">
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg bg-surface-container-high dark:bg-surface-container text-primary dark:text-primary-fixed font-bold border-r-4 border-primary hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined mr-3">group</span>
+                    Workforce
+                </a>
+</li>
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined mr-3">calendar_today</span>
+                    Schedules
+                </a>
+</li>
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined mr-3">fact_check</span>
+                    Audits
+                </a>
+</li>
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined mr-3">inventory_2</span>
+                    Inventory
+                </a>
+</li>
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined mr-3">analytics</span>
+                    Analytics
+                </a>
+</li>
+</ul>
+<div class="p-4 border-t border-border-subtle">
+<ul class="space-y-1">
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined mr-3">support_agent</span>
+                        Support
+                    </a>
+</li>
+<li>
+<a class="flex items-center px-3 py-2 rounded-lg text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+                        Settings
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col md:ml-sidebar-width h-screen overflow-hidden">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest dark:bg-on-surface text-primary dark:text-primary-fixed font-body-sm text-body-sm docked full-width top-0 border-b border-border-subtle dark:border-outline-variant flat no shadows flex justify-between items-center h-14 px-gutter w-full sticky top-0 z-40">
+<div class="flex items-center space-x-4">
+<span class="font-headline text-headline text-on-surface dark:text-on-primary-container font-extrabold tracking-tight">Warehouse UserHub</span>
+<div class="hidden md:flex items-center bg-surface-container-low rounded-full px-3 py-1">
+<span class="material-symbols-outlined text-on-surface-variant mr-2" style="font-size: 18px;">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-body-sm p-0 w-48 text-on-surface" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 rounded-full hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<button class="ml-4 px-4 py-1.5 bg-primary text-on-primary rounded font-label text-label hover:bg-primary-container transition-colors">Check In</button>
+<img alt="Operator identity chip" class="w-8 h-8 rounded-full ml-4" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB89WamcdsAC0EiXwQMl_VIyghmAJL7zn3RjFQzyg-MXJAdxNn4HfYp5EBU_doR4MmMM0xfsiy3WPnZxQgbo49VXIEvxGZVU6na5wyLkHz67RmC8724k6hxTR9HhW4uVRcDXFrxOyk5yy4tFuOzijdjs-l-dVFySNEM15MYFuSEhYU7KulJZZ-Hdt0tCn4DZqD-QYg_TN5zD6rqqkXgsqPgba8kgkdDL_4KtNZd5-H9NxDlw2uHhjh3F8gOl-zoCjbtqsPneBbQyw"/>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 overflow-y-auto p-gutter">
+<div class="max-w-container-max mx-auto">
+<!-- Breadcrumb & Header -->
+<div class="mb-6 flex justify-between items-end">
+<div>
+<div class="flex items-center space-x-2 text-label font-label text-on-surface-variant mb-2">
+<a class="hover:text-primary" href="#">Workforce</a>
+<span class="material-symbols-outlined" style="font-size: 14px;">chevron_right</span>
+<a class="hover:text-primary" href="#">Sarah Jenkins</a>
+<span class="material-symbols-outlined" style="font-size: 14px;">chevron_right</span>
+<span class="text-on-surface">Onboarding Checklist</span>
+</div>
+<div class="flex items-center space-x-3">
+<h2 class="font-display text-display text-on-surface">Onboarding: Forklift Operator</h2>
+<span class="bg-surface-variant text-on-surface-variant px-2 py-0.5 rounded-full font-status-badge text-status-badge">Required</span>
+</div>
+</div>
+<a class="flex items-center text-primary hover:text-primary-container font-label text-label transition-colors" href="#">
+<span class="material-symbols-outlined mr-1" style="font-size: 16px;">edit_document</span>
+                        Manage Templates
+                    </a>
+</div>
+<!-- Progress Section -->
+<div class="bg-surface-container-lowest rounded-xl border border-border-subtle p-6 mb-6">
+<div class="flex justify-between items-end mb-2">
+<div class="font-title text-title text-on-surface">Overall Progress</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant">4 of 8 tasks completed</div>
+</div>
+<div class="w-full bg-surface-container-highest rounded-full h-2.5 mb-1 overflow-hidden">
+<div class="bg-status-success h-2.5 rounded-full" style="width: 50%"></div>
+</div>
+<div class="text-right font-label text-label text-on-surface-variant">50%</div>
+</div>
+<!-- Checklist Container -->
+<div class="bg-surface-container-lowest rounded-xl border border-border-subtle overflow-hidden">
+<!-- Section 1 -->
+<div class="bg-surface-container-low px-6 py-3 border-b border-border-subtle">
+<h3 class="font-title text-title text-on-surface">Phase 1: Administrative</h3>
+</div>
+<ul class="divide-y divide-border-subtle">
+<!-- Task 1: Completed -->
+<li class="flex items-start px-6 py-4 hover:bg-surface-bright transition-colors">
+<div class="flex-shrink-0 mt-0.5 mr-4">
+<span class="material-symbols-outlined text-status-success" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="font-body-sm text-body-sm text-on-surface line-through opacity-70">Verify ID and Right to Work</span>
+<span class="text-status-danger font-bold" title="Required">*</span>
+</div>
+<div class="flex items-center text-label font-label text-on-surface-variant">
+<span class="material-symbols-outlined mr-1" style="font-size: 14px;">person</span>
+                                        J. Smith
+                                        <span class="mx-2">•</span>
+                                        Oct 24, 09:15 AM
+                                    </div>
+</div>
+<p class="text-label font-label text-on-surface-variant mt-1">Scanned copy attached to worker profile.</p>
+</div>
+</li>
+<!-- Task 2: Completed -->
+<li class="flex items-start px-6 py-4 hover:bg-surface-bright transition-colors">
+<div class="flex-shrink-0 mt-0.5 mr-4">
+<span class="material-symbols-outlined text-status-success" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="font-body-sm text-body-sm text-on-surface line-through opacity-70">Issue Security Badge</span>
+<span class="text-status-danger font-bold" title="Required">*</span>
+</div>
+<div class="flex items-center text-label font-label text-on-surface-variant">
+<span class="material-symbols-outlined mr-1" style="font-size: 14px;">person</span>
+                                        J. Smith
+                                        <span class="mx-2">•</span>
+                                        Oct 24, 09:30 AM
+                                    </div>
+</div>
+<p class="text-label font-label text-on-surface-variant mt-1">Badge ID: <span class="font-data-mono text-data-mono bg-surface-variant px-1 rounded">SEC-8921</span></p>
+</div>
+</li>
+</ul>
+<!-- Section 2 -->
+<div class="bg-surface-container-low px-6 py-3 border-y border-border-subtle">
+<h3 class="font-title text-title text-on-surface">Phase 2: Safety &amp; Equipment</h3>
+</div>
+<ul class="divide-y divide-border-subtle">
+<!-- Task 3: Incomplete -->
+<li class="flex items-start px-6 py-4 hover:bg-surface-bright transition-colors bg-proposal-violet/5 border-l-2 border-proposal-violet">
+<div class="flex-shrink-0 mt-0.5 mr-4">
+<button class="w-6 h-6 border-2 border-outline rounded-sm flex items-center justify-center hover:border-primary transition-colors focus:ring-2 focus:ring-primary focus:outline-none"></button>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="font-body-sm text-body-sm text-on-surface font-medium">Distribute PPE (High-vis, Steel-toes)</span>
+<span class="text-status-danger font-bold" title="Required">*</span>
+</div>
+</div>
+<div class="mt-3 flex space-x-3">
+<button class="px-3 py-1 bg-surface-container-high hover:bg-surface-variant text-on-surface font-label text-label rounded border border-border-subtle transition-colors flex items-center">
+<span class="material-symbols-outlined mr-1" style="font-size: 16px;">qr_code_scanner</span>
+                                        Scan Items
+                                    </button>
+</div>
+</div>
+</li>
+<!-- Task 4: Incomplete -->
+<li class="flex items-start px-6 py-4 hover:bg-surface-bright transition-colors">
+<div class="flex-shrink-0 mt-0.5 mr-4">
+<button class="w-6 h-6 border-2 border-outline rounded-sm flex items-center justify-center hover:border-primary transition-colors focus:ring-2 focus:ring-primary focus:outline-none"></button>
+</div>
+<div class="flex-1">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-2">
+<span class="font-body-sm text-body-sm text-on-surface">Forklift Practical Assessment</span>
+<span class="text-status-danger font-bold" title="Required">*</span>
+<span class="bg-surface-variant text-on-surface-variant px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider">Supervisor Req</span>
+</div>
+</div>
+<p class="text-label font-label text-on-surface-variant mt-1">Must be completed by a Level 3 Trainer.</p>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</main>
+</body></html>

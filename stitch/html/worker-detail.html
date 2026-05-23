@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Worker Detail - Warehouse UserHub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#191b23",
+                        "surface-container-high": "#e7e7f3",
+                        "bg-page": "#F8FAFC",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "surface-container-highest": "#e1e2ed",
+                        "on-primary-container": "#eeefff",
+                        "primary": "#004ac6",
+                        "secondary-container": "#8a4cfc",
+                        "on-tertiary-container": "#ffede6",
+                        "proposal-violet": "#7C3AED",
+                        "surface-container": "#ededf9",
+                        "secondary": "#712ae2",
+                        "surface-bright": "#faf8ff",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "surface-dim": "#d9d9e5",
+                        "status-danger": "#DC2626",
+                        "on-error-container": "#93000a",
+                        "background": "#faf8ff",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-secondary": "#ffffff",
+                        "status-success": "#16A34A",
+                        "border-subtle": "#E2E8F0",
+                        "primary-fixed": "#dbe1ff",
+                        "on-background": "#191b23",
+                        "surface-tint": "#0053db",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "status-neutral": "#64748B",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#25005a",
+                        "surface": "#faf8ff",
+                        "status-warning": "#D97706",
+                        "tertiary": "#943700",
+                        "inverse-primary": "#b4c5ff",
+                        "primary-container": "#2563eb",
+                        "surface-variant": "#e1e2ed",
+                        "on-secondary-container": "#fffbff",
+                        "secondary-fixed": "#eaddff",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#bc4800",
+                        "outline": "#737686",
+                        "surface-container-low": "#f3f3fe",
+                        "inverse-surface": "#2e3039",
+                        "inverse-on-surface": "#f0f0fb",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c3c6d7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "1.5rem",
+                        "sidebar-width": "240px",
+                        "sidebar-collapsed": "64px",
+                        "table-row-compact": "2.25rem",
+                        "table-row-comfortable": "3rem",
+                        "container-max": "1600px"
+                    },
+                    "fontFamily": {
+                        "display": ["Inter"],
+                        "table-cell": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "title": ["Inter"],
+                        "status-badge": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "table-cell": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "data-mono": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "status-badge": ["11px", { "lineHeight": "12px", "fontWeight": "600" }],
+                        "body-lg": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "headline": ["18px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[style*="font-variation-settings: 'FILL' 1"] {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-bg-page text-on-surface font-body-sm min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col h-screen fixed left-0 top-0 pt-14 z-30 bg-surface-container-low dark:bg-on-surface w-sidebar-width border-r border-border-subtle dark:border-outline-variant">
+<div class="px-gutter mb-6">
+<div class="font-headline text-headline text-primary dark:text-primary-fixed mb-1">Main Menu</div>
+<div class="text-on-surface-variant text-label font-label">v2.4.0-stable</div>
+</div>
+<ul class="flex-1 space-y-1 mt-4">
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="dashboard">dashboard</span>Dashboard</a></li>
+<li><a class="flex items-center px-gutter py-2 bg-surface-container-high dark:bg-surface-container text-primary dark:text-primary-fixed font-bold border-r-4 border-primary hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="group">group</span>Workforce</a></li>
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="calendar_today">calendar_today</span>Schedules</a></li>
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="fact_check">fact_check</span>Audits</a></li>
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="inventory_2">inventory_2</span>Inventory</a></li>
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="analytics">analytics</span>Analytics</a></li>
+</ul>
+<div class="pb-4">
+<ul class="space-y-1">
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="support_agent">support_agent</span>Support</a></li>
+<li><a class="flex items-center px-gutter py-2 text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#"><span class="material-symbols-outlined mr-3 text-[20px]" data-icon="settings">settings</span>Settings</a></li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 md:ml-[240px] flex flex-col min-w-0">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest dark:bg-on-surface flex justify-between items-center h-14 px-gutter w-full sticky top-0 z-40 border-b border-border-subtle dark:border-outline-variant">
+<div class="font-headline text-headline text-on-surface dark:text-on-primary-container font-bold tracking-tight">Warehouse UserHub</div>
+<div class="flex items-center gap-4">
+<div class="flex gap-2">
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-DEFAULT"><span class="material-symbols-outlined text-[20px]" data-icon="notifications">notifications</span></button>
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-DEFAULT"><span class="material-symbols-outlined text-[20px]" data-icon="help">help</span></button>
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-colors p-2 rounded-DEFAULT"><span class="material-symbols-outlined text-[20px]" data-icon="apps">apps</span></button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-2 rounded-DEFAULT font-label text-label hover:opacity-90 transition-opacity">Check In</button>
+<img alt="Operator identity chip" class="w-8 h-8 rounded-full border border-border-subtle" data-alt="Close up professional headshot of a warehouse manager in a clean, modern facility. Subtle, cool corporate lighting illuminates their face against a slightly blurred background of industrial shelving. The image should feel reliable and efficient, matching a high-end corporate identity system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCOmKVsAJmwj8t8vurP5eDXMIxnwAZ__3ORcmNXyH7EHHBxAgtNiLD5VoPL55Movl41F1jvsF-IqpGwZ2aqUOQaeaam5GhZb8dzlQeW6ToEQ0WxwLROGBGgs6P-Cdw0ajKP5Vr9r4zKasKfom_bOZxuLgyH88xcZLy7dZpAk2T0eyaP2kViAKFBDVlyIUQDH1ZVyKct4FGpJiV4zqpScJlu-BlCAl1a2ucZR74dWyKROho1CwfbF93IGhJ2e5lSn8iOSUTev1fCIw"/>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-gutter max-w-container-max mx-auto w-full">
+<!-- Worker Detail Header -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-6 mb-6 shadow-sm">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-6">
+<img alt="Worker Profile" class="w-20 h-20 rounded-full border-2 border-surface-container-highest" data-alt="Portrait of a female warehouse operator wearing a high-visibility vest. Bright, even lighting highlights her professional demeanor. The background is a clean, modern warehouse interior, slightly out of focus. The overall aesthetic is utilitarian yet approachable." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA1eMiI6qFHCZN2ybLx-YViupvqoRIB8zXpNFJmhv02BQmGqa-CIF7vXiN2sYwColdaJG6WV8eDGDcpt6oh0De9m5LVnTnSBMHY7xgeJxyKX9nma3ZF_7VQYoruV_KdWcNIc9cMDeH7SO9naSQYRaMW6v00l0R2GVZ-CXa9ZfN47D1vri2CZ-vR_w5NDcIg-soKF5W0cINNu82Ik7a4vKRZPK-f__jwiauPFTSht4k8FY7TwOC6LVBw51lDRFAbjJ8s3Va3566ZQg"/>
+<div>
+<h1 class="font-display text-display text-on-surface mb-1">Sarah Jenkins</h1>
+<div class="flex items-center gap-3 text-on-surface-variant font-body-sm">
+<span class="font-data-mono text-data-mono">ID: WH-9942A</span>
+<span>•</span>
+<span>Forklift Operator L2</span>
+<span>•</span>
+<span>Zone C (Fulfillment)</span>
+</div>
+</div>
+</div>
+<div class="flex flex-col items-end gap-2">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-status-success/10 border border-status-success/20">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span class="font-status-badge text-status-badge text-status-success uppercase tracking-wider">Active</span>
+</div>
+<button class="text-on-surface-variant hover:text-on-surface transition-colors">
+<span class="material-symbols-outlined text-[20px]" data-icon="more_vert">more_vert</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Tabs Navigation -->
+<div class="border-b border-border-subtle mb-6">
+<nav aria-label="Tabs" class="flex gap-8">
+<a class="font-label text-label text-primary border-b-2 border-primary pb-3 px-1" href="#">Profile</a>
+<a class="font-label text-label text-on-surface-variant hover:text-on-surface pb-3 px-1 transition-colors" href="#">Access</a>
+<a class="font-label text-label text-on-surface-variant hover:text-on-surface pb-3 px-1 transition-colors" href="#">Certificates</a>
+<a class="font-label text-label text-on-surface-variant hover:text-on-surface pb-3 px-1 transition-colors" href="#">Checklist</a>
+<a class="font-label text-label text-on-surface-variant hover:text-on-surface pb-3 px-1 transition-colors" href="#">History</a>
+</nav>
+</div>
+<!-- Profile Content Area (Grid) -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Core Info Card -->
+<div class="lg:col-span-2 bg-surface-container-lowest border border-border-subtle rounded-xl p-6 shadow-sm">
+<h2 class="font-title text-title text-on-surface mb-4 pb-2 border-b border-border-subtle">Core Information</h2>
+<div class="grid grid-cols-2 gap-y-6 gap-x-8">
+<div>
+<div class="font-label text-label text-on-surface-variant mb-1">Full Name</div>
+<div class="font-body-sm text-body-sm text-on-surface">Sarah Jenkins</div>
+</div>
+<div>
+<div class="font-label text-label text-on-surface-variant mb-1">System ID</div>
+<div class="font-data-mono text-data-mono text-on-surface">WH-9942A-883</div>
+</div>
+<div>
+<div class="font-label text-label text-on-surface-variant mb-1">Primary Role</div>
+<div class="font-body-sm text-body-sm text-on-surface">Forklift Operator L2</div>
+</div>
+<div>
+<div class="font-label text-label text-on-surface-variant mb-1">Department</div>
+<div class="font-body-sm text-body-sm text-on-surface">Fulfillment / Zone C</div>
+</div>
+<div>
+<div class="font-label text-label text-on-surface-variant mb-1">Email</div>
+<div class="font-body-sm text-body-sm text-primary">s.jenkins@warehouse.app</div>
+</div>
+<div>
+<div class="font-label text-label text-on-surface-variant mb-1">Phone</div>
+<div class="font-body-sm text-body-sm text-on-surface">+1 (555) 293-8441</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions / Status Card -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-6 shadow-sm flex flex-col">
+<h2 class="font-title text-title text-on-surface mb-4 pb-2 border-b border-border-subtle">Current Shift</h2>
+<div class="flex-1 flex flex-col justify-center items-center py-4">
+<div class="font-display text-display text-on-surface mb-1">04:22:15</div>
+<div class="font-label text-label text-on-surface-variant mb-6">Clocked In: 07:00 AM</div>
+<div class="w-full space-y-3">
+<button class="w-full bg-surface-container text-on-surface font-label text-label py-2.5 rounded-DEFAULT border border-border-subtle hover:bg-surface-container-high transition-colors">Log Incident</button>
+<button class="w-full bg-surface-container text-on-surface font-label text-label py-2.5 rounded-DEFAULT border border-border-subtle hover:bg-surface-container-high transition-colors">Request Cover</button>
+</div>
+</div>
+</div>
+<!-- Proposed Change Card (Example of Violet Treatment) -->
+<div class="lg:col-span-3 bg-proposal-violet/5 border border-dashed border-proposal-violet rounded-xl p-5 mt-4">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-proposal-violet text-[20px]" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-label text-label text-proposal-violet uppercase tracking-wider font-bold">Proposed Change</span>
+<span class="text-on-surface-variant font-label text-label">— Awaiting Approval</span>
+</div>
+</div>
+<div class="flex flex-col md:flex-row gap-6 md:items-center justify-between">
+<div class="flex-1">
+<p class="font-body-sm text-body-sm text-on-surface mb-2">AI suggests updating primary role based on recent certification completion.</p>
+<div class="flex items-center gap-4 bg-surface-container-lowest p-3 rounded-lg border border-border-subtle">
+<div class="line-through text-status-danger font-body-sm text-body-sm">Forklift Operator L1</div>
+<span class="material-symbols-outlined text-on-surface-variant text-[16px]" data-icon="arrow_forward">arrow_forward</span>
+<div class="underline text-status-success font-body-sm text-body-sm">Forklift Operator L2</div>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 border border-border-subtle rounded-DEFAULT font-label text-label text-on-surface bg-surface-container-lowest hover:bg-surface-container-low transition-colors">Reject</button>
+<button class="px-4 py-2 bg-primary text-on-primary rounded-DEFAULT font-label text-label hover:opacity-90 transition-opacity">Approve</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dashboard - Warehouse UserHub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#191b23",
+                        "surface-container-high": "#e7e7f3",
+                        "bg-page": "#F8FAFC",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "surface-container-highest": "#e1e2ed",
+                        "on-primary-container": "#eeefff",
+                        "primary": "#004ac6",
+                        "secondary-container": "#8a4cfc",
+                        "on-tertiary-container": "#ffede6",
+                        "proposal-violet": "#7C3AED",
+                        "surface-container": "#ededf9",
+                        "secondary": "#712ae2",
+                        "surface-bright": "#faf8ff",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "surface-dim": "#d9d9e5",
+                        "status-danger": "#DC2626",
+                        "on-error-container": "#93000a",
+                        "background": "#faf8ff",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-secondary": "#ffffff",
+                        "status-success": "#16A34A",
+                        "border-subtle": "#E2E8F0",
+                        "primary-fixed": "#dbe1ff",
+                        "on-background": "#191b23",
+                        "surface-tint": "#0053db",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "status-neutral": "#64748B",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#25005a",
+                        "surface": "#faf8ff",
+                        "status-warning": "#D97706",
+                        "tertiary": "#943700",
+                        "inverse-primary": "#b4c5ff",
+                        "primary-container": "#2563eb",
+                        "surface-variant": "#e1e2ed",
+                        "on-secondary-container": "#fffbff",
+                        "secondary-fixed": "#eaddff",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#bc4800",
+                        "outline": "#737686",
+                        "surface-container-low": "#f3f3fe",
+                        "inverse-surface": "#2e3039",
+                        "inverse-on-surface": "#f0f0fb",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c3c6d7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "1.5rem",
+                        "sidebar-width": "240px",
+                        "sidebar-collapsed": "64px",
+                        "table-row-compact": "2.25rem",
+                        "table-row-comfortable": "3rem",
+                        "container-max": "1600px"
+                    },
+                    "fontFamily": {
+                        "display": ["Inter"],
+                        "table-cell": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "title": ["Inter"],
+                        "status-badge": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                        "table-cell": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "data-mono": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "label": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                        "title": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                        "status-badge": ["11px", {"lineHeight": "12px", "fontWeight": "600"}],
+                        "body-lg": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                        "headline": ["18px", {"lineHeight": "28px", "fontWeight": "600"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-bg-page text-on-surface font-body-lg min-h-screen flex">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low text-primary docked full-height left-0 w-sidebar-width border-r border-border-subtle flex flex-col h-screen fixed left-0 top-0 pt-14 z-30 hidden md:flex">
+<!-- Header -->
+<div class="px-gutter mb-6">
+<h1 class="font-headline text-headline text-primary">Main Menu</h1>
+<p class="font-label text-label text-on-surface-variant">v2.4.0-stable</p>
+</div>
+<!-- Tabs -->
+<div class="flex-1 overflow-y-auto">
+<ul class="space-y-1 px-4">
+<li>
+<a class="bg-surface-container-high text-primary font-bold border-r-4 border-primary flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+                        Dashboard
+                    </a>
+</li>
+<li>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">group</span>
+                        Workforce
+                    </a>
+</li>
+<li>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">calendar_today</span>
+                        Schedules
+                    </a>
+</li>
+<li>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">fact_check</span>
+                        Audits
+                    </a>
+</li>
+<li>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">inventory_2</span>
+                        Inventory
+                    </a>
+</li>
+<li>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">analytics</span>
+                        Analytics
+                    </a>
+</li>
+</ul>
+</div>
+<!-- Footer Tabs -->
+<div class="mt-auto mb-4 border-t border-border-subtle pt-4 px-4 space-y-1">
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">support_agent</span>
+                Support
+            </a>
+<a class="text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all flex items-center px-3 py-2 rounded" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+                Settings
+            </a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-sidebar-width min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest border-b border-border-subtle docked full-width top-0 flex justify-between items-center h-14 px-gutter w-full sticky top-0 z-40">
+<div class="flex items-center">
+<h1 class="font-headline text-headline text-on-surface mr-6">Warehouse UserHub</h1>
+<!-- Search -->
+<div class="relative hidden sm:block w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 transform -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+<input class="w-full bg-surface-container-low border border-border-subtle rounded px-9 py-1.5 font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center space-x-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">apps</span>
+</button>
+<button class="bg-primary text-on-primary font-label text-label px-4 py-1.5 rounded ml-2 hover:opacity-90 transition-opacity">
+                    Check In
+                </button>
+<!-- Profile Placeholder -->
+<div class="w-8 h-8 rounded-full bg-surface-variant ml-4 border border-border-subtle flex items-center justify-center overflow-hidden">
+<span class="material-symbols-outlined text-on-surface-variant text-sm">person</span>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-gutter overflow-y-auto max-w-[1600px] mx-auto w-full">
+<div class="mb-8">
+<h2 class="font-display text-display text-on-surface mb-1">Dashboard</h2>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Overview of operations and pending actions.</p>
+</div>
+<!-- Stat Tiles (Bento Style) -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<!-- Active Workers -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-5 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label text-label text-on-surface-variant">Active Workers</span>
+<span class="material-symbols-outlined text-status-success">groups</span>
+</div>
+<div>
+<div class="font-display text-display text-on-surface">342</div>
+<div class="font-body-sm text-body-sm text-status-success mt-1 flex items-center">
+<span class="material-symbols-outlined text-[14px] mr-1">arrow_upward</span> +12 this shift
+                        </div>
+</div>
+</div>
+<!-- Pending Proposals -->
+<div class="bg-surface-container-lowest border border-proposal-violet rounded-xl p-5 flex flex-col justify-between bg-[#F5F3FF]">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label text-label text-proposal-violet">Pending AI Proposals</span>
+<span class="material-symbols-outlined text-proposal-violet">smart_toy</span>
+</div>
+<div>
+<div class="font-display text-display text-on-surface">8</div>
+<div class="font-body-sm text-body-sm text-on-surface-variant mt-1">Awaiting approval</div>
+</div>
+</div>
+<!-- Expiring Certs -->
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl p-5 flex flex-col justify-between">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label text-label text-status-warning">Certs Expiring (30d)</span>
+<span class="material-symbols-outlined text-status-warning">warning</span>
+</div>
+<div>
+<div class="font-display text-display text-on-surface">15</div>
+<div class="font-body-sm text-body-sm text-status-warning mt-1">Requires scheduling</div>
+</div>
+</div>
+<!-- SLA Breaches -->
+<div class="bg-surface-container-lowest border border-status-danger rounded-xl p-5 flex flex-col justify-between bg-error-container bg-opacity-20">
+<div class="flex justify-between items-start mb-4">
+<span class="font-label text-label text-status-danger">Offboarding SLA Breaches</span>
+<span class="material-symbols-outlined text-status-danger">error</span>
+</div>
+<div>
+<div class="font-display text-display text-status-danger">3</div>
+<div class="font-body-sm text-body-sm text-status-danger mt-1">Action required immediately</div>
+</div>
+</div>
+</div>
+<!-- Two Column Layout -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<!-- Left Column: Needs Attention -->
+<div class="lg:col-span-2 space-y-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-title text-title text-on-surface">Needs Attention</h3>
+<a class="font-label text-label text-primary hover:underline" href="#">View all</a>
+</div>
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg overflow-hidden">
+<ul class="divide-y divide-border-subtle">
+<!-- SLA Breach Item -->
+<li class="p-4 hover:bg-surface-container-low transition-colors">
+<div class="flex items-start justify-between">
+<div class="flex items-start space-x-3">
+<div class="mt-0.5">
+<span class="material-symbols-outlined text-status-danger">gpp_maybe</span>
+</div>
+<div>
+<div class="flex items-center space-x-2 mb-1">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">J. Doe Offboarding Delayed</span>
+<span class="bg-error-container text-on-error-container font-status-badge text-status-badge px-2 py-0.5 rounded-full border border-status-danger border-opacity-30">• SLA Breach</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Equipment return unverified for 48+ hours.</p>
+<span class="font-data-mono text-data-mono text-on-surface-variant bg-surface-container px-1.5 py-0.5 rounded">ID: OFF-9021</span>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</li>
+<!-- Proposal Item -->
+<li class="p-4 bg-[#F5F3FF] border-l-2 border-proposal-violet hover:bg-[#ede9fe] transition-colors">
+<div class="flex items-start justify-between">
+<div class="flex items-start space-x-3">
+<div class="mt-0.5">
+<span class="material-symbols-outlined text-proposal-violet">smart_toy</span>
+</div>
+<div>
+<div class="flex items-center space-x-2 mb-1">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Schedule Optimization Proposed</span>
+<span class="bg-proposal-violet bg-opacity-10 text-proposal-violet font-status-badge text-status-badge px-2 py-0.5 rounded-full border border-proposal-violet border-opacity-30">• Proposed</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">AI suggests reallocating 5 workers to Zone B to clear backlog.</p>
+<div class="flex space-x-2 mt-2">
+<button class="bg-primary text-on-primary font-label text-label px-3 py-1 rounded hover:opacity-90 transition-opacity">Review</button>
+</div>
+</div>
+</div>
+<span class="font-label text-label text-on-surface-variant">10m ago</span>
+</div>
+</li>
+<!-- Expiring Cert -->
+<li class="p-4 hover:bg-surface-container-low transition-colors">
+<div class="flex items-start justify-between">
+<div class="flex items-start space-x-3">
+<div class="mt-0.5">
+<span class="material-symbols-outlined text-status-warning">timer</span>
+</div>
+<div>
+<div class="flex items-center space-x-2 mb-1">
+<span class="font-body-sm text-body-sm font-medium text-on-surface">Forklift Cert Expiring: M. Smith</span>
+<span class="bg-surface-container-highest text-on-surface-variant font-status-badge text-status-badge px-2 py-0.5 rounded-full border border-border-subtle">• 12 Days Left</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant mb-2">Requires practical recertification.</p>
+</div>
+</div>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<!-- Right Column: Recent Activity Feed -->
+<div class="lg:col-span-1">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-title text-title text-on-surface">Recent Activity</h3>
+</div>
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg p-5">
+<div class="relative border-l border-border-subtle ml-3 space-y-6">
+<!-- Activity Item 1 -->
+<div class="relative pl-6">
+<span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-border-subtle border-2 border-surface-container-lowest"></span>
+<div class="mb-1 flex items-center justify-between">
+<span class="font-label text-label font-medium text-on-surface">Admin System</span>
+<span class="font-label text-label text-on-surface-variant">2m ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Bulk imported <span class="font-medium text-on-surface">24</span> new contractor profiles.</p>
+</div>
+<!-- Activity Item 2 (AI Assisted) -->
+<div class="relative pl-6">
+<span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-proposal-violet border-2 border-surface-container-lowest"></span>
+<div class="mb-1 flex items-center justify-between">
+<span class="font-label text-label font-medium text-on-surface">System AI</span>
+<span class="font-label text-label text-on-surface-variant">15m ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Auto-approved <span class="font-medium text-on-surface">Level 1</span> access for Group A based on standard template.</p>
+<div class="mt-2 inline-flex items-center bg-surface-container-low border border-border-subtle rounded px-2 py-0.5">
+<span class="material-symbols-outlined text-[14px] text-proposal-violet mr-1">auto_awesome</span>
+<span class="font-label text-label text-on-surface-variant">Policy Applied</span>
+</div>
+</div>
+<!-- Activity Item 3 -->
+<div class="relative pl-6">
+<span class="absolute -left-1.5 top-1 w-3 h-3 rounded-full bg-border-subtle border-2 border-surface-container-lowest"></span>
+<div class="mb-1 flex items-center justify-between">
+<span class="font-label text-label font-medium text-on-surface">Supervisor K.</span>
+<span class="font-label text-label text-on-surface-variant">1h ago</span>
+</div>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Overrode schedule anomaly for <span class="font-medium text-on-surface">S. Williams</span>.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

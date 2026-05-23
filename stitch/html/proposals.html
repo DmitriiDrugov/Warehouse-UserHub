@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Proposals Inbox - Warehouse UserHub</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-surface": "#191b23",
+                        "surface-container-high": "#e7e7f3",
+                        "bg-page": "#F8FAFC",
+                        "on-tertiary": "#ffffff",
+                        "on-surface-variant": "#434655",
+                        "surface-container-highest": "#e1e2ed",
+                        "on-primary-container": "#eeefff",
+                        "primary": "#004ac6",
+                        "secondary-container": "#8a4cfc",
+                        "on-tertiary-container": "#ffede6",
+                        "proposal-violet": "#7C3AED",
+                        "surface-container": "#ededf9",
+                        "secondary": "#712ae2",
+                        "surface-bright": "#faf8ff",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "surface-dim": "#d9d9e5",
+                        "status-danger": "#DC2626",
+                        "on-error-container": "#93000a",
+                        "background": "#faf8ff",
+                        "error": "#ba1a1a",
+                        "surface-container-lowest": "#ffffff",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "on-secondary": "#ffffff",
+                        "status-success": "#16A34A",
+                        "border-subtle": "#E2E8F0",
+                        "primary-fixed": "#dbe1ff",
+                        "on-background": "#191b23",
+                        "surface-tint": "#0053db",
+                        "on-primary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "on-secondary-fixed-variant": "#5a00c6",
+                        "status-neutral": "#64748B",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "secondary-fixed-dim": "#d2bbff",
+                        "on-secondary-fixed": "#25005a",
+                        "surface": "#faf8ff",
+                        "status-warning": "#D97706",
+                        "tertiary": "#943700",
+                        "inverse-primary": "#b4c5ff",
+                        "primary-container": "#2563eb",
+                        "surface-variant": "#e1e2ed",
+                        "on-secondary-container": "#fffbff",
+                        "secondary-fixed": "#eaddff",
+                        "error-container": "#ffdad6",
+                        "tertiary-container": "#bc4800",
+                        "outline": "#737686",
+                        "surface-container-low": "#f3f3fe",
+                        "inverse-surface": "#2e3039",
+                        "inverse-on-surface": "#f0f0fb",
+                        "on-error": "#ffffff",
+                        "outline-variant": "#c3c6d7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "gutter": "1.5rem",
+                        "sidebar-width": "240px",
+                        "sidebar-collapsed": "64px",
+                        "table-row-compact": "2.25rem",
+                        "table-row-comfortable": "3rem",
+                        "container-max": "1600px"
+                    },
+                    "fontFamily": {
+                        "display": ["Inter"],
+                        "table-cell": ["Inter"],
+                        "data-mono": ["JetBrains Mono"],
+                        "label": ["Inter"],
+                        "body-sm": ["Inter"],
+                        "title": ["Inter"],
+                        "status-badge": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline": ["Inter"]
+                    },
+                    "fontSize": {
+                        "display": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "table-cell": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "data-mono": ["13px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "label": ["12px", { "lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500" }],
+                        "body-sm": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "title": ["16px", { "lineHeight": "24px", "fontWeight": "600" }],
+                        "status-badge": ["11px", { "lineHeight": "12px", "fontWeight": "600" }],
+                        "body-lg": ["15px", { "lineHeight": "22px", "fontWeight": "400" }],
+                        "headline": ["18px", { "lineHeight": "28px", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined.fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
+</head>
+<body class="bg-bg-page text-on-background font-body-sm text-body-sm min-h-screen flex flex-col">
+<!-- TopNavBar -->
+<header class="bg-surface-container-lowest dark:bg-on-surface flex justify-between items-center h-14 px-gutter w-full sticky top-0 z-40 border-b border-border-subtle dark:border-outline-variant transition-colors">
+<div class="flex items-center gap-4">
+<span class="font-headline text-headline text-on-surface dark:text-on-primary-container font-extrabold tracking-tight">Warehouse UserHub</span>
+</div>
+<div class="flex-1 max-w-md mx-8">
+<div class="relative flex items-center w-full">
+<span class="material-symbols-outlined absolute left-3 text-on-surface-variant dark:text-surface-variant pointer-events-none">search</span>
+<input class="w-full pl-10 pr-4 py-1.5 bg-surface-container-low dark:bg-surface-container border border-border-subtle dark:border-outline-variant rounded focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary text-on-surface dark:text-on-primary-container font-body-sm text-body-sm placeholder:text-on-surface-variant transition-all" placeholder="Search..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-2">
+<button class="p-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors rounded-full flex items-center justify-center hover:opacity-80 hover:scale-95">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors rounded-full flex items-center justify-center hover:opacity-80 hover:scale-95">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-low dark:hover:bg-surface-variant transition-colors rounded-full flex items-center justify-center hover:opacity-80 hover:scale-95">
+<span class="material-symbols-outlined" data-icon="apps">apps</span>
+</button>
+<div class="h-6 w-px bg-border-subtle mx-2"></div>
+<button class="font-label text-label bg-primary text-on-primary px-4 py-1.5 rounded hover:bg-primary-container transition-colors shadow-sm ml-2">
+                Check In
+            </button>
+<img alt="Operator identity chip" class="w-8 h-8 rounded-full ml-4 border border-border-subtle object-cover" data-alt="A close up portrait photo of a male warehouse operator wearing a high visibility vest. Studio lighting, neutral background, professional and realistic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXOKs9QHJdoYHiuffdy4tjylmRT7tEiFfMQZR4a67ANkHC3wsrwm9uYPUf4TP2S5sOfUCNJfg2OtXjMFHYw9s2paiokMNRFZXsYzK68ky2w7Y1lQruvm_deHbX9ehoLra691beuIzFglxGF7mtou1ovLAVJwuZG3OfIF4R3tI6rz-fKLz0Ywb_0--O6Z2rD31Fdwft0LXBH8TlUYLpPhPj3YgcenEn6R0scf0gM4gPEhOyqsqVK8VantgeF2Vq4fehCY4nushGZg"/>
+</div>
+</header>
+<div class="flex flex-1 overflow-hidden relative">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-on-surface w-sidebar-width border-r border-border-subtle dark:border-outline-variant flex flex-col h-screen fixed left-0 top-0 pt-14 z-30 transition-all">
+<div class="p-4 border-b border-border-subtle">
+<h2 class="font-label text-label text-on-surface-variant uppercase tracking-wider mb-1">Main Menu</h2>
+<p class="font-data-mono text-data-mono text-on-surface-variant text-xs opacity-70">v2.4.0-stable</p>
+</div>
+<div class="flex-1 overflow-y-auto py-2 flex flex-col gap-1 px-2">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all group" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label text-label">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all group" href="#">
+<span class="material-symbols-outlined" data-icon="group">group</span>
+<span class="font-label text-label">Workforce</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all group" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label text-label">Schedules</span>
+</a>
+<!-- ACTIVE NAV ITEM: Audits matches "Proposals Inbox / Approval Gate" -->
+<a class="flex items-center gap-3 px-3 py-2 rounded bg-surface-container-high dark:bg-surface-container text-primary dark:text-primary-fixed font-bold border-r-4 border-primary hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all group translate-x-1" href="#">
+<span class="material-symbols-outlined fill-icon" data-icon="fact_check">fact_check</span>
+<span class="font-label text-label">Audits</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all group" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2">inventory_2</span>
+<span class="font-label text-label">Inventory</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all group" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label text-label">Analytics</span>
+</a>
+</div>
+<div class="mt-auto p-2 border-t border-border-subtle flex flex-col gap-1">
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="support_agent">support_agent</span>
+<span class="font-label text-label">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 rounded text-on-surface-variant dark:text-surface-variant font-medium hover:bg-surface-container-highest dark:hover:bg-surface-dim transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label text-label">Settings</span>
+</a>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 ml-[240px] p-gutter overflow-y-auto">
+<div class="max-w-container-max mx-auto">
+<!-- Page Header -->
+<div class="mb-8 flex justify-between items-end">
+<div>
+<h1 class="font-display text-display text-on-surface mb-2">Proposals Inbox</h1>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Review and adjudicate AI-generated optimization proposals across operations.</p>
+</div>
+<div class="flex gap-2">
+<button class="px-3 py-1.5 border border-border-subtle rounded font-label text-label text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">filter_list</span>
+                            Filter
+                        </button>
+<button class="px-3 py-1.5 border border-border-subtle rounded font-label text-label text-on-surface hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">sort</span>
+                            Sort
+                        </button>
+</div>
+</div>
+<!-- Tabs -->
+<div class="border-b border-border-subtle mb-6 flex gap-6">
+<button class="font-label text-label text-primary border-b-2 border-primary pb-2 px-1">
+                        Pending (12)
+                    </button>
+<button class="font-label text-label text-on-surface-variant hover:text-on-surface border-b-2 border-transparent pb-2 px-1 transition-colors">
+                        Approved
+                    </button>
+<button class="font-label text-label text-on-surface-variant hover:text-on-surface border-b-2 border-transparent pb-2 px-1 transition-colors">
+                        Rejected
+                    </button>
+</div>
+<!-- Proposals List -->
+<div class="space-y-6">
+<!-- Proposal Card 1 -->
+<div class="bg-surface border border-dashed border-proposal-violet rounded-lg shadow-sm overflow-hidden flex flex-col relative">
+<div class="absolute top-0 left-0 w-1 h-full bg-proposal-violet"></div>
+<div class="p-6 border-b border-border-subtle">
+<div class="flex justify-between items-start mb-4">
+<div>
+<div class="flex items-center gap-2 mb-1">
+<span class="font-status-badge text-status-badge bg-secondary-fixed text-on-secondary-fixed px-2 py-0.5 rounded-full uppercase tracking-wider flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-proposal-violet"></span>
+                                            Proposed — awaiting approval
+                                        </span>
+<span class="font-status-badge text-status-badge bg-surface-container-high text-on-surface-variant px-2 py-0.5 rounded">
+                                            AI-OPT-774A
+                                        </span>
+</div>
+<h3 class="font-title text-title text-on-surface mt-2 flex items-center gap-2">
+                                        Shift Realignment
+                                        <span class="material-symbols-outlined text-proposal-violet text-[18px]">auto_awesome</span>
+</h3>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                                        Target: Marcus Chen <span class="font-data-mono text-data-mono text-xs">(OP-8921)</span> • Role: Forklift Operator
+                                    </p>
+</div>
+<div class="text-right">
+<span class="font-label text-label text-on-surface-variant">Generated: 10 mins ago</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-4 rounded border border-border-subtle mb-4">
+<p class="font-body-sm text-body-sm text-on-surface">
+<strong class="font-semibold">Reasoning:</strong> Worker OP-8921 has consistently accrued &gt;2 hours of overtime in the last 3 pay periods on the current schedule. Aligning their start time 1 hour later matches peak inbound freight volume, reducing idle time and mitigating overtime risk by an estimated 85%.
+                                </p>
+</div>
+<!-- Diff View -->
+<div class="grid grid-cols-2 gap-4">
+<div class="border border-border-subtle rounded">
+<div class="bg-surface-container-high px-3 py-1.5 border-b border-border-subtle flex justify-between items-center">
+<span class="font-label text-label text-on-surface-variant">Current (Committed)</span>
+</div>
+<div class="p-3 bg-surface font-data-mono text-data-mono text-on-surface">
+<div class="line-through text-status-neutral decoration-status-danger mb-1">Shift Start: 06:00 AM PST</div>
+<div class="line-through text-status-neutral decoration-status-danger">Shift End: 02:30 PM PST</div>
+</div>
+</div>
+<div class="border border-border-subtle rounded">
+<div class="bg-[#F5F3FF] px-3 py-1.5 border-b border-border-subtle flex justify-between items-center">
+<span class="font-label text-label text-proposal-violet">Proposed Change</span>
+</div>
+<div class="p-3 bg-surface font-data-mono text-data-mono text-on-surface">
+<div class="text-status-success mb-1">+ Shift Start: 07:00 AM PST</div>
+<div class="text-status-success">+ Shift End: 03:30 PM PST</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Action Footer -->
+<div class="bg-surface-bright p-4 flex items-center gap-4">
+<div class="flex-1">
+<label class="sr-only" for="note-1">Review Note</label>
+<input class="w-full bg-surface border border-border-subtle rounded px-3 py-2 font-body-sm text-body-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-all" id="note-1" placeholder="Add optional review note..." type="text"/>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 border border-border-subtle bg-surface text-on-surface font-label text-label rounded hover:bg-surface-container-low transition-colors">
+                                    Reject
+                                </button>
+<button class="px-4 py-2 bg-primary text-on-primary font-label text-label rounded hover:bg-primary-container shadow-sm transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">check</span>
+                                    Approve
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
