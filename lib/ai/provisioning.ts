@@ -9,7 +9,7 @@
  * The deterministic execution path is `approveProposal` in lib/services/proposals.ts.
  */
 
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, ilike, or } from "drizzle-orm";
 import { z } from "zod";
 
 import { dbAdmin, dbReadonly } from "../db/client";
@@ -110,16 +110,35 @@ async function resolveIntent(intent: Intent): Promise<ProvisioningResolution> {
   if (!role) {
     return { ok: false, error: `Unknown role code '${intent.roleCode}'` };
   }
-  // warehouse
-  const [wh] = await dbAdmin
-    .select({ id: warehouses.id })
-    .from(warehouses)
-    .where(eq(warehouses.code, intent.warehouseCode))
-    .limit(1);
+  // warehouse — exact code match, then fuzzy fallback by name / location
+  let wh = (
+    await dbAdmin
+      .select({ id: warehouses.id })
+      .from(warehouses)
+      .where(eq(warehouses.code, intent.warehouseCode))
+      .limit(1)
+  )[0];
+
+  if (!wh) {
+    const term = `%${intent.warehouseCode}%`;
+    wh = (
+      await dbAdmin
+        .select({ id: warehouses.id })
+        .from(warehouses)
+        .where(
+          or(
+            ilike(warehouses.name, term),
+            ilike(warehouses.location, term),
+          ),
+        )
+        .limit(1)
+    )[0];
+  }
+
   if (!wh) {
     return {
       ok: false,
-      error: `Unknown warehouse code '${intent.warehouseCode}'`,
+      error: `Unknown warehouse '${intent.warehouseCode}'`,
     };
   }
   // extra permissions: resolve codes "system.permission" → permission_id
