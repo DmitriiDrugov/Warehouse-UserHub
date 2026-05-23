@@ -82,6 +82,18 @@ export function buildSystemPrompt(ctx: ProvisioningContext): string {
   ].join("\n");
 }
 
+async function loadProvisioningContext(): Promise<ProvisioningContext> {
+  const [warehouseRows, roleRows] = await Promise.all([
+    dbAdmin
+      .select({ code: warehouses.code, name: warehouses.name, location: warehouses.location })
+      .from(warehouses),
+    dbAdmin
+      .select({ code: roles.code, name: roles.name, description: roles.description })
+      .from(roles),
+  ]);
+  return { warehouses: warehouseRows, roles: roleRows };
+}
+
 export type ProvisioningResolution =
   | { ok: true; payload: ProvisionPayloadT; explanation: string }
   | { ok: false; error: string };
@@ -199,10 +211,11 @@ async function resolveIntent(intent: Intent): Promise<ProvisioningResolution> {
 }
 
 export async function parseProvisioningIntent(text: string): Promise<Intent> {
+  const ctx = await loadProvisioningContext();
   const llm = getLLM();
   return await llm.completeJSON(
     [
-      { role: "system", content: buildSystemPrompt({ warehouses: [], roles: [] }) },
+      { role: "system", content: buildSystemPrompt(ctx) },
       {
         role: "user",
         content:
