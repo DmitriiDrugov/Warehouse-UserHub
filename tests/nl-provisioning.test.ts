@@ -68,4 +68,18 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("Remote Hub");
     expect(prompt).not.toContain("| null");
   });
+
+  it("handles empty warehouse and role lists gracefully", () => {
+    const emptyCtx: ProvisioningContext = { warehouses: [], roles: [] };
+    const prompt = buildSystemPrompt(emptyCtx);
+    // Headers still appear
+    expect(prompt).toContain("Available warehouses");
+    expect(prompt).toContain("Available roles");
+    // No garbage like "undefined" or "null"
+    expect(prompt).not.toContain("undefined");
+    expect(prompt).not.toContain("| null");
+    // Date rule still present
+    const today = new Date().toISOString().slice(0, 10);
+    expect(prompt).toContain(today);
+  });
 });

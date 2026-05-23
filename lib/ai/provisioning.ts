@@ -9,10 +9,10 @@
  * The deterministic execution path is `approveProposal` in lib/services/proposals.ts.
  */
 
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
-import { dbAdmin } from "../db/client";
+import { dbAdmin, dbReadonly } from "../db/client";
 import {
   permissions,
   roles,
@@ -84,12 +84,14 @@ export function buildSystemPrompt(ctx: ProvisioningContext): string {
 
 async function loadProvisioningContext(): Promise<ProvisioningContext> {
   const [warehouseRows, roleRows] = await Promise.all([
-    dbAdmin
+    dbReadonly
       .select({ code: warehouses.code, name: warehouses.name, location: warehouses.location })
-      .from(warehouses),
-    dbAdmin
+      .from(warehouses)
+      .orderBy(asc(warehouses.code)),
+    dbReadonly
       .select({ code: roles.code, name: roles.name, description: roles.description })
-      .from(roles),
+      .from(roles)
+      .orderBy(asc(roles.code)),
   ]);
   return { warehouses: warehouseRows, roles: roleRows };
 }
