@@ -135,8 +135,8 @@ export default async function WarehouseUsersListPage({
                 ))}
               </Select>
             </Field>
-            <Button type="submit" variant="secondary">
-              Apply
+            <Button type="submit" icon={<Icon name="search" size={16} />}>
+              Search
             </Button>
           </div>
           <p className="font-label text-label text-on-surface-variant whitespace-nowrap">

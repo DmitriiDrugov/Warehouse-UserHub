@@ -29,7 +29,9 @@ import {
   rolePermissions,
   roles,
   systems,
+  userCertificates,
   warehouses,
+  warehouseUsers,
   type AppUser,
 } from "./schema";
 import * as schema from "./schema";
@@ -199,6 +201,187 @@ const CHECKLIST_TEMPLATES = [
 ];
 
 // ---------------------------------------------------------------------
+// Warehouse workers seed data
+// ---------------------------------------------------------------------
+
+/** 50 unique first names (mixed gender, European + international) */
+const WORKER_FIRST_NAMES = [
+  "Klaus", "Anna", "Markus", "Lena", "Thomas",
+  "Sophie", "Andreas", "Maria", "Stefan", "Julia",
+  "Felix", "Emma", "Michael", "Lisa", "Peter",
+  "Hannah", "Max", "Sabine", "Lukas", "Lea",
+  "Tim", "Alina", "Jan", "Katrin", "Daniel",
+  "Sandra", "Sebastian", "Monika", "Simon", "Elena",
+  "David", "Irina", "Alexander", "Natalia", "Lars",
+  "Andrea", "Erik", "Eva", "Carlos", "Barbara",
+  "Mehmet", "Pierre", "Ali", "Lucas", "Ahmed",
+  "Marco", "Matteo", "Giorgio", "Antoni", "Henri",
+];
+
+/** 60 unique last names — lcm(50,60)=300 so all 100 full names are unique */
+const WORKER_LAST_NAMES = [
+  "Müller", "Schmidt", "Schneider", "Fischer", "Weber",
+  "Meyer", "Wagner", "Becker", "Schulz", "Hoffmann",
+  "Koch", "Richter", "Bauer", "Klein", "Wolf",
+  "Neumann", "Schwarz", "Zimmermann", "Braun", "Krüger",
+  "Hartmann", "Lange", "Werner", "Krause", "Meier",
+  "Schulze", "Maier", "Köhler", "König", "Walter",
+  "Huber", "Kaiser", "Fuchs", "Peters", "Lang",
+  "Scholz", "Möller", "Weiß", "Jung", "Hahn",
+  "Schubert", "Vogel", "Friedrich", "Roth", "Lorenz",
+  "Baumann", "Albrecht", "Novak", "Rossi", "Dubois",
+  "Petrov", "Kowalski", "Fernandez", "Garcia", "Chen",
+  "Park", "Hassan", "Oezkan", "Marchetti", "Lefebvre",
+];
+
+type WorkerStatus = "active" | "pending" | "suspended" | "offboarded";
+
+function fillArr<T>(val: T, count: number): T[] {
+  return new Array<T>(count).fill(val);
+}
+
+/** Deterministic hire date spread evenly across 2023-01-15 → 2025-11-30 */
+function makeHireDate(i: number): Date {
+  const start = new Date("2023-01-15").getTime();
+  const end = new Date("2025-11-30").getTime();
+  return new Date(start + ((end - start) * i) / 99);
+}
+
+const WORKER_ROLES: string[] = [
+  ...fillArr("forklift_operator", 25),   // 0-24
+  ...fillArr("lift_truck_operator", 20), // 25-44
+  ...fillArr("picker", 30),              // 45-74
+  ...fillArr("warehouse_supervisor", 15), // 75-89
+  ...fillArr("admin_assistant", 10),     // 90-99
+];
+
+const WORKER_WAREHOUSES: string[] = [
+  ...fillArr("WH-A", 35), // 0-34
+  ...fillArr("WH-B", 35), // 35-69
+  ...fillArr("WH-C", 30), // 70-99
+];
+
+const WORKER_STATUSES: WorkerStatus[] = [
+  ...fillArr<WorkerStatus>("active", 65),     // 0-64
+  ...fillArr<WorkerStatus>("pending", 15),    // 65-79
+  ...fillArr<WorkerStatus>("suspended", 10),  // 80-89
+  ...fillArr<WorkerStatus>("offboarded", 10), // 90-99
+];
+
+// ---------------------------------------------------------------------
+// Warehouse workers
+// ---------------------------------------------------------------------
+
+async function seedWarehouseWorkers(
+  db: ReturnType<typeof drizzle<typeof schema>>,
+  warehousesByCode: Map<string, string>,
+): Promise<void> {
+  const existingRoles = await db.select().from(roles);
+  const rolesByCode = new Map(existingRoles.map((r) => [r.code, r.id]));
+
+  const existingCerts = await db.select().from(certificates);
+  const certsByCode = new Map(
+    existingCerts.map((c) => [c.code, { id: c.id, validityDays: c.validityDays }]),
+  );
+
+  const today = new Date();
+
+  // Build worker rows
+  const workerValues = Array.from({ length: 100 }, (_, i) => {
+    const firstName = WORKER_FIRST_NAMES[i % WORKER_FIRST_NAMES.length];
+    const lastName = WORKER_LAST_NAMES[i % WORKER_LAST_NAMES.length];
+    const empNum = String(i + 1).padStart(3, "0");
+    const hireDate = makeHireDate(i);
+    const status = WORKER_STATUSES[i];
+    const terminationDate = status === "offboarded" ? new Date("2025-12-15") : null;
+
+    return {
+      employeeId: `EMP-${empNum}`,
+      fullName: `${firstName} ${lastName}`,
+      email: `emp-${empNum}@warehouse-hub.example`,
+      warehouseId: warehousesByCode.get(WORKER_WAREHOUSES[i]!)!,
+      roleId: rolesByCode.get(WORKER_ROLES[i]!)!,
+      status,
+      hireDate,
+      terminationDate,
+    };
+  });
+
+  const insertedWorkers = await db
+    .insert(warehouseUsers)
+    .values(workerValues)
+    .returning();
+
+  // Build certificate assignments
+  type CertRow = {
+    warehouseUserId: string;
+    certificateId: string;
+    issuedAt: Date;
+    expiresAt: Date | null;
+    status: "valid" | "expired" | "revoked";
+  };
+  const certValues: CertRow[] = [];
+
+  for (let i = 0; i < insertedWorkers.length; i++) {
+    const worker = insertedWorkers[i];
+    if (!worker) continue;
+    const roleCode = WORKER_ROLES[i];
+    const hireDate = makeHireDate(i);
+
+    type Assign = { code: string; offsetDays: number };
+    const toAssign: Assign[] = [];
+
+    // Role-specific licences
+    if (roleCode === "forklift_operator") {
+      toAssign.push({ code: "forklift", offsetDays: 0 });
+    }
+    if (roleCode === "lift_truck_operator") {
+      toAssign.push({ code: "reach_truck", offsetDays: 0 });
+    }
+    // Supervisors always have first-aid
+    if (roleCode === "warehouse_supervisor") {
+      toAssign.push({ code: "first_aid", offsetDays: 7 });
+    }
+    // Safety basics for 80 % of workers (every 5th skipped)
+    if (i % 5 !== 4) {
+      toAssign.push({ code: "safety_basics", offsetDays: 14 });
+    }
+    // First aid for every 3rd non-supervisor
+    if (i % 3 === 0 && roleCode !== "warehouse_supervisor") {
+      toAssign.push({ code: "first_aid", offsetDays: 7 });
+    }
+
+    for (const assign of toAssign) {
+      const cert = certsByCode.get(assign.code);
+      if (!cert) continue;
+
+      const issuedAt = new Date(hireDate.getTime() + assign.offsetDays * 86_400_000);
+      const expiresAt = cert.validityDays
+        ? new Date(issuedAt.getTime() + cert.validityDays * 86_400_000)
+        : null;
+      const certStatus: "valid" | "expired" =
+        expiresAt && expiresAt < today ? "expired" : "valid";
+
+      certValues.push({
+        warehouseUserId: worker.id,
+        certificateId: cert.id,
+        issuedAt,
+        expiresAt,
+        status: certStatus,
+      });
+    }
+  }
+
+  if (certValues.length > 0) {
+    await db.insert(userCertificates).values(certValues);
+  }
+
+  console.log(
+    `[seed] inserted ${insertedWorkers.length} workers, ${certValues.length} certificate records.`,
+  );
+}
+
+// ---------------------------------------------------------------------
 // Main
 // ---------------------------------------------------------------------
 
@@ -227,6 +410,9 @@ async function main() {
     console.log("[seed] creating operators (Supabase auth + app_users)…");
     await seedOperators(db, admin, warehousesByCode);
 
+    console.log("[seed] creating warehouse workers and certificates…");
+    await seedWarehouseWorkers(db, warehousesByCode);
+
     console.log("[seed] done.");
     console.log("");
     console.log("Operator credentials (password: " + SEED_PASSWORD + "):");
@@ -239,7 +425,9 @@ async function main() {
     );
     console.log("");
     console.log("Catalog seeded: 3 warehouses, 5 roles, 4 systems, 9 permissions, 4 certificates, 3 checklist templates.");
-    console.log("No warehouse users seeded — create them via the UI for testing.");
+    console.log("Workers seeded: 100 warehouse workers (65 active, 15 pending, 10 suspended, 10 offboarded).");
+    console.log("  Roles: 25 forklift operators, 20 reach-truck operators, 30 pickers, 15 supervisors, 10 admin assistants.");
+    console.log("  Certificates: forklift/reach-truck licences, first-aid, safety basics (mix of valid/expired).");
   } finally {
     await sqlClient.end({ timeout: 5 });
   }
@@ -400,7 +588,7 @@ async function ensureSupabaseAuthUser(
   });
   if (createRes.data?.user) return createRes.data.user.id;
   const errMsg = createRes.error?.message ?? "";
-  if (!/already registered|already exists/i.test(errMsg)) {
+  if (!/already.{0,15}registered|already exists|user already/i.test(errMsg)) {
     throw new Error(`createUser failed for ${email}: ${errMsg}`);
   }
   // already there — find it and reset password
