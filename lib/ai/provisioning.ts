@@ -25,6 +25,11 @@ import { getLLM } from "../llm";
 import { createProposal } from "../services/proposals";
 import { ProvisionPayload, type ProvisionPayloadT } from "../validation/proposals";
 
+export type ProvisioningContext = {
+  warehouses: { code: string; name: string; location: string | null }[];
+  roles: { code: string; name: string; description: string | null }[];
+};
+
 const IntentSchema = z.object({
   employeeId: z.string().min(1),
   fullName: z.string().min(1),
@@ -45,13 +50,35 @@ const IntentSchema = z.object({
 });
 type Intent = z.infer<typeof IntentSchema>;
 
-function buildSystemPrompt(): string {
+export function buildSystemPrompt(ctx: ProvisioningContext): string {
   const today = new Date().toISOString().slice(0, 10);
+
+  const warehouseList = ctx.warehouses
+    .map((w) => `  ${w.code} | ${w.name}${w.location ? ` | ${w.location}` : ""}`)
+    .join("\n");
+
+  const roleList = ctx.roles
+    .map((r) => `  ${r.code} | ${r.name}${r.description ? ` | ${r.description}` : ""}`)
+    .join("\n");
+
   return [
-    "You convert a single English provisioning request into a JSON object.",
+    "You convert a provisioning request (written in any language) into a JSON object.",
     "Schema:",
-    "{ employeeId: string, fullName: string, email?: string, warehouseCode: string, roleCode: string, hireDate: ISO date string, referenceEmployeeId?: string, extraPermissionCodes?: string[] (\"system_code.permission_code\") }",
-    `Rules: pick the simplest interpretation; today's date is ${today} — use it for hireDate if unstated; if the user says "same access as <name>" set referenceEmployeeId only if a clear identifier is given. Output JSON only — no prose.`,
+    '{ employeeId: string, fullName: string, email?: string, warehouseCode: string, roleCode: string, hireDate: ISO date string, referenceEmployeeId?: string, extraPermissionCodes?: string[] ("system_code.permission_code") }',
+    "",
+    "Available warehouses — match by city name, location keyword, or warehouse name; output the exact code:",
+    warehouseList,
+    "",
+    "Available roles — output the exact code:",
+    roleList,
+    "",
+    "Rules:",
+    `- today's date is ${today} — use it for hireDate if unstated.`,
+    "- Match the warehouse by city, location, or name keyword; always output its exact code from the list above.",
+    "- If role is unspecified, vague, or expressed as 'any' / 'любую' / 'irgendeine' (or similar in any language) — pick the least privileged / most basic entry-level role from the list above.",
+    '- If the user says "same access as <name>", set referenceEmployeeId only if a clear identifier is given.',
+    "- Input may be in any language; always output JSON in English.",
+    "- Output JSON only — no prose.",
   ].join("\n");
 }
 
@@ -175,7 +202,7 @@ export async function parseProvisioningIntent(text: string): Promise<Intent> {
   const llm = getLLM();
   return await llm.completeJSON(
     [
-      { role: "system", content: buildSystemPrompt() },
+      { role: "system", content: buildSystemPrompt({ warehouses: [], roles: [] }) },
       {
         role: "user",
         content:
