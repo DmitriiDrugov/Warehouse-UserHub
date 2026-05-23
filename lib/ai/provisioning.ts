@@ -9,7 +9,7 @@
  * The deterministic execution path is `approveProposal` in lib/services/proposals.ts.
  */
 
-import { and, asc, eq, ilike, or } from "drizzle-orm";
+import { and, asc, eq, or, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { dbAdmin, dbReadonly } from "../db/client";
@@ -113,24 +113,29 @@ async function resolveIntent(intent: Intent): Promise<ProvisioningResolution> {
   // warehouse — exact code match, then fuzzy fallback by name / location
   let wh = (
     await dbAdmin
-      .select({ id: warehouses.id })
+      .select({ id: warehouses.id, code: warehouses.code })
       .from(warehouses)
       .where(eq(warehouses.code, intent.warehouseCode))
       .limit(1)
   )[0];
 
   if (!wh) {
-    const term = `%${intent.warehouseCode}%`;
+    // Escape ILIKE metacharacters so underscores/percent in warehouse codes
+    // match literally rather than acting as wildcards.
+    const raw = intent.warehouseCode;
+    const escaped = raw.replace(/[%_\\]/g, "\\$&");
+    const term = `%${escaped}%`;
     wh = (
       await dbAdmin
-        .select({ id: warehouses.id })
+        .select({ id: warehouses.id, code: warehouses.code })
         .from(warehouses)
         .where(
           or(
-            ilike(warehouses.name, term),
-            ilike(warehouses.location, term),
+            sql`${warehouses.name} ilike ${term} escape '\\'`,
+            sql`${warehouses.location} ilike ${term} escape '\\'`,
           ),
         )
+        .orderBy(asc(warehouses.code))
         .limit(1)
     )[0];
   }
@@ -216,7 +221,7 @@ async function resolveIntent(intent: Intent): Promise<ProvisioningResolution> {
 
   const explanation = [
     `Provision new warehouse user '${intent.fullName}' (${intent.employeeId})`,
-    `at warehouse ${intent.warehouseCode}`,
+    `at warehouse ${wh.code}`,
     `with role ${intent.roleCode}`,
     referenceWarehouseUserId
       ? `inheriting active permissions from ${intent.referenceEmployeeId}.`
