@@ -195,7 +195,8 @@ export default async function WarehouseUserDetailPage({ params }: PageProps) {
         createdAt: workerDocuments.createdAt,
       })
       .from(workerDocuments)
-      .where(eq(workerDocuments.workerId, id));
+      .where(eq(workerDocuments.workerId, id))
+      .orderBy(desc(workerDocuments.createdAt));
 
     return {
       user,
