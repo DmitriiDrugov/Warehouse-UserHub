@@ -15,6 +15,13 @@
       "when": 1779635093355,
       "tag": "0001_easy_newton_destine",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1779635491021,
+      "tag": "0002_magenta_miracleman",
+      "breakpoints": true
     }
   ]
 }
