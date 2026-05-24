@@ -59,11 +59,19 @@ export function ChatInterface() {
       clearInput();
       scrollToBottom();
       startTransition(async () => {
-        const fd = new FormData();
-        fd.set("file", file);
-        fd.set("model", selectedModel);
-        const result = await uploadDocAction(fd);
-        setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+        try {
+          const fd = new FormData();
+          fd.set("file", file);
+          fd.set("model", selectedModel);
+          const result = await uploadDocAction(fd);
+          setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+        } catch (err) {
+          setMessages((prev) => [...prev, {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            result: { type: "error", message: err instanceof Error ? err.message : String(err) },
+          }]);
+        }
         scrollToBottom();
       });
       return;
@@ -75,11 +83,19 @@ export function ChatInterface() {
     clearInput();
     scrollToBottom();
     startTransition(async () => {
-      const fd = new FormData();
-      fd.set("text", text);
-      fd.set("model", selectedModel);
-      const result = await chatAction(fd);
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+      try {
+        const fd = new FormData();
+        fd.set("text", text);
+        fd.set("model", selectedModel);
+        const result = await chatAction(fd);
+        setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+      } catch (err) {
+        setMessages((prev) => [...prev, {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          result: { type: "error", message: err instanceof Error ? err.message : String(err) },
+        }]);
+      }
       scrollToBottom();
     });
   }

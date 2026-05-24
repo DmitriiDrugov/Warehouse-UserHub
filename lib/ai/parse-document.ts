@@ -80,7 +80,7 @@ export async function extractWorkerDataFromDocument(
   return IntentFromDocSchema.parse(parsed);
 }
 
-// ─── OpenRouter (OpenAI-compatible vision format) ─────────────────────────────
+// ─── OpenRouter (OpenAI-compatible endpoint, Claude pass-through) ────────────
 
 async function callOpenRouter(opts: {
   env: ReturnType<typeof serverEnv>;
@@ -93,49 +93,66 @@ async function callOpenRouter(opts: {
   const { env, model, base64, mimeType, systemPrompt, extractInstruction } = opts;
   const baseUrl = (env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1").replace(/\/$/, "");
 
-  // OpenAI vision format: base64 data URL works for images and PDFs on Claude via OpenRouter
-  const imageUrl = `data:${mimeType};base64,${base64}`;
+  // For PDFs, use the native Anthropic document block — OpenRouter passes it
+  // through to Claude unchanged. For images, use the standard image_url format.
+  const fileBlock =
+    mimeType === "application/pdf"
+      ? { type: "document", source: { type: "base64", media_type: mimeType, data: base64 } }
+      : { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } };
 
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${env.LLM_API_KEY}`,
-      "HTTP-Referer": "https://github.com/warehouse-userhub",
-      "X-Title": "Warehouse UserHub",
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0,
-      max_tokens: 2048,
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: [
-            { type: "image_url", image_url: { url: imageUrl } },
-            { type: "text", text: extractInstruction },
-          ],
-        },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 90_000);
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`OpenRouter API error ${response.status}: ${body}`);
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${env.LLM_API_KEY}`,
+        "HTTP-Referer": "https://github.com/warehouse-userhub",
+        "X-Title": "Warehouse UserHub",
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        max_tokens: 2048,
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: [
+              fileBlock,
+              { type: "text", text: extractInstruction },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`OpenRouter API error ${response.status}: ${body}`);
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string | null } }>;
+      error?: { message?: string };
+    };
+
+    if (data.error) throw new Error(`OpenRouter error: ${data.error.message ?? "unknown"}`);
+
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error("OpenRouter returned empty content");
+    return content;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Document parsing timed out (90 s). The file may be too large or the service is unavailable.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  const data = (await response.json()) as {
-    choices?: Array<{ message?: { content?: string | null } }>;
-    error?: { message?: string };
-  };
-
-  if (data.error) throw new Error(`OpenRouter error: ${data.error.message ?? "unknown"}`);
-
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error("OpenRouter returned empty content");
-  return content;
 }
 
 // ─── Anthropic native format ──────────────────────────────────────────────────
@@ -156,44 +173,57 @@ async function callAnthropic(opts: {
       ? { type: "document", source: { type: "base64", media_type: mimeType, data: base64 } }
       : { type: "image", source: { type: "base64", media_type: mimeType, data: base64 } };
 
-  const response = await fetch(`${baseUrl}/messages`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": env.LLM_API_KEY,
-      "anthropic-version": "2023-06-01",
-      "anthropic-beta": "pdfs-2024-09-25",
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 2048,
-      temperature: 0,
-      system: systemPrompt,
-      messages: [
-        {
-          role: "user",
-          content: [
-            contentBlock,
-            { type: "text", text: extractInstruction },
-          ],
-        },
-      ],
-    }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 90_000);
 
-  if (!response.ok) {
-    const body = await response.text().catch(() => "");
-    throw new Error(`Anthropic API error ${response.status}: ${body}`);
+  try {
+    const response = await fetch(`${baseUrl}/messages`, {
+      method: "POST",
+      signal: controller.signal,
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": env.LLM_API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-beta": "pdfs-2024-09-25",
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2048,
+        temperature: 0,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [
+              contentBlock,
+              { type: "text", text: extractInstruction },
+            ],
+          },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const body = await response.text().catch(() => "");
+      throw new Error(`Anthropic API error ${response.status}: ${body}`);
+    }
+
+    const data = (await response.json()) as {
+      content?: Array<{ type: string; text?: string }>;
+      error?: { message?: string };
+    };
+
+    if (data.error) throw new Error(`Anthropic error: ${data.error.message ?? "unknown"}`);
+
+    const textBlock = data.content?.find((b) => b.type === "text");
+    if (!textBlock?.text) throw new Error("Anthropic returned no text content");
+    return textBlock.text;
+  } catch (err) {
+    if (err instanceof Error && err.name === "AbortError") {
+      throw new Error("Document parsing timed out (90 s). The file may be too large or the service is unavailable.");
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
   }
-
-  const data = (await response.json()) as {
-    content?: Array<{ type: string; text?: string }>;
-    error?: { message?: string };
-  };
-
-  if (data.error) throw new Error(`Anthropic error: ${data.error.message ?? "unknown"}`);
-
-  const textBlock = data.content?.find((b) => b.type === "text");
-  if (!textBlock?.text) throw new Error("Anthropic returned no text content");
-  return textBlock.text;
 }
