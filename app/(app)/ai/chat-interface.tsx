@@ -40,7 +40,7 @@ export function ChatInterface() {
     if (!text.trim()) return;
     const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
-    if (textareaRef.current) { textareaRef.current.value = ""; setHasText(false); }
+    if (textareaRef.current) { textareaRef.current.value = ""; textareaRef.current.style.height = "auto"; setHasText(false); textareaRef.current.focus(); }
     scrollToBottom();
 
     startTransition(async () => {
