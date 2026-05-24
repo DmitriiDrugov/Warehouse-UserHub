@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Icon } from "@/components/ui/icon";
+import { ModelSelectorDropdown } from "@/components/ui/model-selector";
 import type { Operator } from "@/lib/auth/operator";
 
 export function AppTopBar({ operator }: { operator: Operator }) {
@@ -36,34 +37,37 @@ export function AppTopBar({ operator }: { operator: Operator }) {
         </div>
       </div>
 
-      <div className="flex items-center gap-1">
-        <Link
-          href="/proposals"
-          className="relative p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
-          title="Proposals inbox"
-        >
-          <Icon name="notifications" size={20} />
-        </Link>
-        <Link
-          href="/audit"
-          className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors hidden sm:flex"
-          title="Audit log"
-        >
-          <Icon name="history" size={20} />
-        </Link>
-        <Link
-          href="/admin"
-          className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors hidden sm:flex"
-          title="Settings"
-        >
-          <Icon name="apps" size={20} />
-        </Link>
-        <span className="mx-2 h-6 w-px bg-border-subtle hidden sm:block" />
-        <div
-          className="w-8 h-8 rounded-full bg-primary-fixed-dim text-on-primary-fixed font-medium text-label flex items-center justify-center border border-border-subtle shrink-0"
-          title={`${operator.fullName} · ${operator.operatorRole}`}
-        >
-          {initials}
+      <div className="flex items-center gap-3">
+        <ModelSelectorDropdown />
+        <div className="flex items-center gap-1">
+          <Link
+            href="/proposals"
+            className="relative p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors"
+            title="Proposals inbox"
+          >
+            <Icon name="notifications" size={20} />
+          </Link>
+          <Link
+            href="/audit"
+            className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors hidden sm:flex"
+            title="Audit log"
+          >
+            <Icon name="history" size={20} />
+          </Link>
+          <Link
+            href="/admin"
+            className="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors hidden sm:flex"
+            title="Settings"
+          >
+            <Icon name="apps" size={20} />
+          </Link>
+          <span className="mx-2 h-6 w-px bg-border-subtle hidden sm:block" />
+          <div
+            className="w-8 h-8 rounded-full bg-primary-fixed-dim text-on-primary-fixed font-medium text-label flex items-center justify-center border border-border-subtle shrink-0"
+            title={`${operator.fullName} · ${operator.operatorRole}`}
+          >
+            {initials}
+          </div>
         </div>
       </div>
     </header>
