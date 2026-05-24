@@ -51,7 +51,7 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
 
   const parsed = ChatInputSchema.safeParse({
     text: formData.get("text"),
-    model: formData.get("model") ?? "claude-sonnet-4-6",
+    model: formData.get("model"),
   });
   if (!parsed.success) {
     return { type: "error", message: parsed.error.issues.map((i) => i.message).join("; ") };
@@ -88,15 +88,22 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
   }
 
   // intent === "provision"
-  const result = await proposeProvision(text, model);
-  if (!result.ok) {
-    return { type: "error", message: result.error };
+  try {
+    const result = await proposeProvision(text, model);
+    if (!result.ok) {
+      return { type: "error", message: result.error };
+    }
+    return {
+      type: "provision",
+      proposalId: result.proposalId,
+      explanation: result.explanation,
+    };
+  } catch (err) {
+    return {
+      type: "error",
+      message: `Provisioning failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
   }
-  return {
-    type: "provision",
-    proposalId: result.proposalId,
-    explanation: result.explanation,
-  };
 }
 
 // ─── Document upload action ───────────────────────────────────────────────────
@@ -154,8 +161,9 @@ export async function uploadDocAction(formData: FormData): Promise<ChatResult> {
       buffer,
       mimeType,
     });
-  } catch {
-    // Don't fail the whole action if storage upload fails
+  } catch (storageErr) {
+    // Don't fail the whole action if storage upload fails — log for observability
+    console.error("[uploadDocAction] storage upload failed:", storageErr);
   }
 
   // 4. Insert worker_documents row (staged — workerId is null until approval)
