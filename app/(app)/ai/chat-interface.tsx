@@ -9,8 +9,8 @@ import { chatAction, uploadDocAction } from "./actions";
 
 // ─── Message types ────────────────────────────────────────────────────────────
 
-type UserMessage = { role: "user"; text: string; fileName?: string };
-type AssistantMessage = { role: "assistant"; result: ChatResult };
+type UserMessage = { id: string; role: "user"; text: string; fileName?: string };
+type AssistantMessage = { id: string; role: "assistant"; result: ChatResult };
 type ChatMessage = UserMessage | AssistantMessage;
 
 // ─── Quick suggestion chips (matching Stitch design) ─────────────────────────
@@ -25,6 +25,7 @@ const SUGGESTIONS = [
 
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [hasText, setHasText] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [selectedModel] = useSelectedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -37,9 +38,9 @@ export function ChatInterface() {
 
   function handleSendText(text: string) {
     if (!text.trim()) return;
-    const userMsg: UserMessage = { role: "user", text };
+    const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
-    if (textareaRef.current) textareaRef.current.value = "";
+    if (textareaRef.current) { textareaRef.current.value = ""; setHasText(false); }
     scrollToBottom();
 
     startTransition(async () => {
@@ -47,13 +48,13 @@ export function ChatInterface() {
       fd.set("text", text);
       fd.set("model", selectedModel);
       const result = await chatAction(fd);
-      setMessages((prev) => [...prev, { role: "assistant", result }]);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
       scrollToBottom();
     });
   }
 
   function handleSendFile(file: File) {
-    const userMsg: UserMessage = { role: "user", text: `📄 ${file.name}`, fileName: file.name };
+    const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text: `📄 ${file.name}`, fileName: file.name };
     setMessages((prev) => [...prev, userMsg]);
     scrollToBottom();
 
@@ -62,7 +63,7 @@ export function ChatInterface() {
       fd.set("file", file);
       fd.set("model", selectedModel);
       const result = await uploadDocAction(fd);
-      setMessages((prev) => [...prev, { role: "assistant", result }]);
+      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
       scrollToBottom();
     });
   }
@@ -80,8 +81,8 @@ export function ChatInterface() {
       <div className="flex-1 overflow-y-auto px-gutter pt-8 pb-44 max-w-[1200px] mx-auto w-full">
         {messages.length === 0 && <EmptyState />}
         <div className="space-y-10">
-          {messages.map((msg, i) => (
-            <MessagePair key={i} message={msg} />
+          {messages.map((msg) => (
+            <MessagePair key={msg.id} message={msg} />
           ))}
           {isPending && <ThinkingBubble />}
           <div ref={bottomRef} />
@@ -103,6 +104,7 @@ export function ChatInterface() {
                     const t = e.currentTarget;
                     t.style.height = "auto";
                     t.style.height = `${t.scrollHeight}px`;
+                    setHasText(t.value.length > 0);
                   }}
                   placeholder="Ask about workers, schedules, or warehouse audits…"
                   className="w-full bg-transparent border-none focus:ring-0 resize-none placeholder:text-outline max-h-40 min-h-[44px] text-body-lg font-body-lg"
@@ -131,7 +133,7 @@ export function ChatInterface() {
                 </button>
                 <button
                   type="button"
-                  disabled={isPending || !textareaRef.current?.value}
+                  disabled={isPending || !hasText}
                   onClick={() => handleSendText(textareaRef.current?.value ?? "")}
                   className="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
                 >
