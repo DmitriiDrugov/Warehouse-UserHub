@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./icon";
 
 export type ModelId =
@@ -39,10 +39,10 @@ export function useSelectedModel(): [ModelId, (m: ModelId) => void] {
     }
   }, []);
 
-  const setModel = (m: ModelId) => {
+  const setModel = useCallback((m: ModelId) => {
     localStorage.setItem(STORAGE_KEY, m);
     setModelState(m);
-  };
+  }, []);
 
   return [model, setModel];
 }
@@ -62,7 +62,9 @@ export function ModelSelectorDropdown() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const current = MODELS.find((m_) => m_.id === model) ?? MODELS[1]!;
+  const current =
+    MODELS.find((m_) => m_.id === model) ??
+    MODELS.find((m_) => m_.id === DEFAULT_MODEL)!;
 
   return (
     <div ref={ref} className="relative hidden md:block">
