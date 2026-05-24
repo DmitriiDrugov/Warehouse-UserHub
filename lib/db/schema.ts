@@ -510,7 +510,7 @@ export const auditLog = pgTable(
     // semantically too — losing the proposal linkage would degrade the
     // audit trail.
     proposalId: uuid("proposal_id").references(() => aiProposals.id, {
-      onDelete: "set null",
+      onDelete: "restrict",
     }),
     before: jsonb("before"),
     after: jsonb("after"),
@@ -605,6 +605,7 @@ export const warehouseUsersRelations = relations(
     access: many(userAccess),
     certificates: many(userCertificates),
     checklists: many(userChecklists),
+    documents: many(workerDocuments),
   }),
 );
 
@@ -719,6 +720,7 @@ export const aiProposalsRelations = relations(aiProposals, ({ one, many }) => ({
     references: [appUsers.id],
   }),
   auditEntries: many(auditLog),
+  stagedDocuments: many(workerDocuments),
 }));
 
 export const auditLogRelations = relations(auditLog, ({ one }) => ({
