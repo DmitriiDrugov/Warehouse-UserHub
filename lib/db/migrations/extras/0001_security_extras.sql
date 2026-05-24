@@ -121,7 +121,8 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON
     public.checklist_templates,
     public.checklist_items,
     public.user_checklists,
-    public.user_checklist_items
+    public.user_checklist_items,
+    public.worker_documents
   TO app_operator;
 
 -- audit_log: SELECT + INSERT only. UPDATE/DELETE blocked by trigger AND
@@ -321,6 +322,31 @@ DROP POLICY IF EXISTS ai_proposals_update ON public.ai_proposals;
 CREATE POLICY ai_proposals_update ON public.ai_proposals FOR UPDATE
   USING (public.current_operator_role() = 'warehouse_admin')
   WITH CHECK (public.current_operator_role() = 'warehouse_admin');
+
+-- ---- worker_documents ----
+ALTER TABLE public.worker_documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.worker_documents FORCE ROW LEVEL SECURITY;
+-- SELECT: only linked documents (worker_id IS NOT NULL) for workers the operator can see.
+-- Staged docs (worker_id IS NULL, pending proposal) are only accessed via dbAdmin (bypasses RLS).
+DROP POLICY IF EXISTS worker_documents_select ON public.worker_documents;
+CREATE POLICY worker_documents_select ON public.worker_documents FOR SELECT
+  USING (
+    worker_id IS NOT NULL
+    AND public.has_warehouse_user_access(worker_id)
+  );
+-- INSERT/UPDATE/DELETE: hr or warehouse_admin only, and only for their workers.
+DROP POLICY IF EXISTS worker_documents_modify ON public.worker_documents;
+CREATE POLICY worker_documents_modify ON public.worker_documents FOR ALL
+  USING (
+    public.current_operator_role() IN ('hr', 'warehouse_admin')
+    AND worker_id IS NOT NULL
+    AND public.has_warehouse_user_access(worker_id)
+  )
+  WITH CHECK (
+    public.current_operator_role() IN ('hr', 'warehouse_admin')
+    AND worker_id IS NOT NULL
+    AND public.has_warehouse_user_access(worker_id)
+  );
 
 -- ---- audit_log ----
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
