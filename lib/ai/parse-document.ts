@@ -93,12 +93,14 @@ async function callOpenRouter(opts: {
   const { env, model, base64, mimeType, systemPrompt, extractInstruction } = opts;
   const baseUrl = (env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1").replace(/\/$/, "");
 
-  // For PDFs, use the native Anthropic document block — OpenRouter passes it
-  // through to Claude unchanged. For images, use the standard image_url format.
-  const fileBlock =
-    mimeType === "application/pdf"
-      ? { type: "document", source: { type: "base64", media_type: mimeType, data: base64 } }
-      : { type: "image_url", image_url: { url: `data:${mimeType};base64,${base64}` } };
+  // OpenRouter uses the OpenAI-compatible endpoint: both images and PDFs are
+  // sent as image_url with a base64 data URL. OpenRouter translates this to
+  // Anthropic's native document/image blocks before forwarding to Claude.
+  // Do NOT use { type: "document", source: ... } here — OpenRouter strips it.
+  const fileBlock = {
+    type: "image_url",
+    image_url: { url: `data:${mimeType};base64,${base64}` },
+  };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 90_000);
