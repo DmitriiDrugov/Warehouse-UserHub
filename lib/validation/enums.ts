@@ -82,3 +82,13 @@ export const AUDIT_ACTIONS = [
   "operator.deactivated",
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
+
+export const DOCUMENT_TYPES = [
+  "contract",
+  "passport",
+  "work_permit",
+  "forklift_certificate",
+  "health_clearance",
+  "other",
+] as const;
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];

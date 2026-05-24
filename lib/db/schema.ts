@@ -456,6 +456,41 @@ export const aiProposals = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// Worker documents
+// ---------------------------------------------------------------------------
+
+export const workerDocuments = pgTable(
+  "worker_documents",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    // null until the proposal is approved and the worker is created
+    workerId: uuid("worker_id").references(() => warehouseUsers.id, {
+      onDelete: "cascade",
+    }),
+    // set when uploaded via AI chat; cleared on worker link
+    proposalId: uuid("proposal_id").references(() => aiProposals.id, {
+      onDelete: "set null",
+    }),
+    documentType: text("document_type").notNull(),
+    fileName: text("file_name").notNull(),
+    // Supabase Storage object path, e.g. "proposals/abc/contract/file.pdf"
+    storagePath: text("storage_path").notNull(),
+    fileSizeBytes: integer("file_size_bytes"),
+    mimeType: text("mime_type"),
+    uploadedBy: uuid("uploaded_by").references(() => appUsers.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => ({
+    byWorker: index("worker_documents_by_worker").on(t.workerId),
+    byProposal: index("worker_documents_by_proposal").on(t.proposalId),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Append-only audit log
 // ---------------------------------------------------------------------------
 
@@ -475,7 +510,7 @@ export const auditLog = pgTable(
     // semantically too — losing the proposal linkage would degrade the
     // audit trail.
     proposalId: uuid("proposal_id").references(() => aiProposals.id, {
-      onDelete: "restrict",
+      onDelete: "set null",
     }),
     before: jsonb("before"),
     after: jsonb("after"),
@@ -612,6 +647,20 @@ export const userCertificatesRelations = relations(
   }),
 );
 
+export const workerDocumentsRelations = relations(
+  workerDocuments,
+  ({ one }) => ({
+    worker: one(warehouseUsers, {
+      fields: [workerDocuments.workerId],
+      references: [warehouseUsers.id],
+    }),
+    proposal: one(aiProposals, {
+      fields: [workerDocuments.proposalId],
+      references: [aiProposals.id],
+    }),
+  }),
+);
+
 export const checklistTemplatesRelations = relations(
   checklistTemplates,
   ({ one, many }) => ({
@@ -708,3 +757,5 @@ export type AiProposal = typeof aiProposals.$inferSelect;
 export type NewAiProposal = typeof aiProposals.$inferInsert;
 export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type NewAuditLogEntry = typeof auditLog.$inferInsert;
+export type WorkerDocument = typeof workerDocuments.$inferSelect;
+export type NewWorkerDocument = typeof workerDocuments.$inferInsert;
