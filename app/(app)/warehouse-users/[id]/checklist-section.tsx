@@ -154,9 +154,17 @@ export function ChecklistSection({
                           <button
                             type="submit"
                             disabled={tickPending}
-                            className="font-label text-label text-primary hover:underline"
+                            className="font-label text-label text-primary hover:underline flex items-center gap-1"
                           >
-                            {tickPending ? "…" : "Mark done"}
+                            {tickPending ? (
+                              <Icon
+                                name="progress_activity"
+                                size={14}
+                                className="animate-spin"
+                              />
+                            ) : (
+                              "Mark done"
+                            )}
                           </button>
                         </form>
                       ) : null}
