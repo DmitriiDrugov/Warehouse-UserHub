@@ -42,4 +42,9 @@ describe("classifyIntent", () => {
       expect.objectContaining({ model: "claude-opus-4-7", maxTokens: 10 }),
     );
   });
+
+  it("returns 'unsupported' if LLM throws", async () => {
+    mockComplete.mockRejectedValueOnce(new Error("network error"));
+    await expect(classifyIntent("anything")).resolves.toBe("unsupported");
+  });
 });

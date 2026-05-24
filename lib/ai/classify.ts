@@ -20,15 +20,21 @@ export async function classifyIntent(
   text: string,
   model?: string,
 ): Promise<IntentType> {
-  const llm = getLLM();
-  const raw = await llm.complete(
-    [
-      { role: "system", content: SYSTEM_PROMPT },
-      { role: "user", content: text.slice(0, 500) }, // cap input for classify call
-    ],
-    { temperature: 0, maxTokens: 10, model },
-  );
+  try {
+    const llm = getLLM();
+    const raw = await llm.complete(
+      [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: text.slice(0, 500) }, // cap input for classify call
+      ],
+      { temperature: 0, maxTokens: 10, model },
+    );
 
-  const trimmed = raw.trim().toLowerCase() as IntentType;
-  return VALID_INTENTS.has(trimmed) ? trimmed : "unsupported";
+    const trimmed = raw.trim().toLowerCase() as IntentType;
+    return VALID_INTENTS.has(trimmed) ? trimmed : "unsupported";
+  } catch {
+    // Network errors, rate limits, etc. — fall back to unsupported
+    // so the chat action can handle it gracefully instead of crashing.
+    return "unsupported";
+  }
 }
