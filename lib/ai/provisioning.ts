@@ -48,7 +48,7 @@ const IntentSchema = z.object({
     )
     .optional(),
 });
-type Intent = z.infer<typeof IntentSchema>;
+export type Intent = z.infer<typeof IntentSchema>;
 
 export function buildSystemPrompt(ctx: ProvisioningContext): string {
   const today = new Date().toISOString().slice(0, 10);
@@ -236,7 +236,7 @@ async function resolveIntent(intent: Intent): Promise<ProvisioningResolution> {
   return { ok: true, payload, explanation };
 }
 
-export async function parseProvisioningIntent(text: string): Promise<Intent> {
+export async function parseProvisioningIntent(text: string, model?: string): Promise<Intent> {
   const ctx = await loadProvisioningContext();
   const llm = getLLM();
   return await llm.completeJSON(
@@ -249,24 +249,30 @@ export async function parseProvisioningIntent(text: string): Promise<Intent> {
       },
     ],
     IntentSchema,
-    { temperature: 0 },
+    { temperature: 0, model },
   );
 }
 
 export async function proposeProvision(
   text: string,
+  model?: string,
+  preParseIntent?: Intent,
 ): Promise<
-  | { ok: true; proposalId: string }
+  | { ok: true; proposalId: string; explanation: string }
   | { ok: false; error: string; parsed?: Intent }
 > {
   let intent: Intent;
-  try {
-    intent = await parseProvisioningIntent(text);
-  } catch (err) {
-    return {
-      ok: false,
-      error: `Could not parse request: ${err instanceof Error ? err.message : String(err)}`,
-    };
+  if (preParseIntent) {
+    intent = preParseIntent;
+  } else {
+    try {
+      intent = await parseProvisioningIntent(text, model);
+    } catch (err) {
+      return {
+        ok: false,
+        error: `Could not parse request: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
   }
   const resolved = await resolveIntent(intent);
   if (!resolved.ok) return { ok: false, error: resolved.error, parsed: intent };
@@ -278,5 +284,5 @@ export async function proposeProvision(
     payload: resolved.payload,
     explanation: resolved.explanation,
   });
-  return { ok: true, proposalId: proposal.id };
+  return { ok: true, proposalId: proposal.id, explanation: resolved.explanation };
 }
