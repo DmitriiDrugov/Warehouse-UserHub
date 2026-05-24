@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useSelectedModel } from "@/components/ui/model-selector";
@@ -27,11 +27,12 @@ export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasText, setHasText] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isPending, setIsPending] = useState(false);
   const [selectedModel] = useSelectedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
   // Restore focus to the input when the pending transition finishes.
   useEffect(() => {
@@ -51,53 +52,84 @@ export function ChatInterface() {
     setPendingFile(null);
   }
 
+  function handleStop() {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setIsPending(false);
+  }
+
   function handleSend() {
+    const controller = new AbortController();
+
     if (pendingFile) {
       const file = pendingFile;
       const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text: `📄 ${file.name}`, fileName: file.name };
       setMessages((prev) => [...prev, userMsg]);
       clearInput();
       scrollToBottom();
-      startTransition(async () => {
+      abortRef.current = controller;
+      setIsPending(true);
+      void (async () => {
         try {
           const fd = new FormData();
           fd.set("file", file);
           fd.set("model", selectedModel);
           const result = await uploadDocAction(fd);
-          setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+          if (!controller.signal.aborted) {
+            setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+          }
         } catch (err) {
-          setMessages((prev) => [...prev, {
-            id: crypto.randomUUID(),
-            role: "assistant",
-            result: { type: "error", message: err instanceof Error ? err.message : String(err) },
-          }]);
+          if (!controller.signal.aborted) {
+            setMessages((prev) => [...prev, {
+              id: crypto.randomUUID(),
+              role: "assistant",
+              result: { type: "error", message: err instanceof Error ? err.message : String(err) },
+            }]);
+          }
+        } finally {
+          if (abortRef.current === controller) {
+            abortRef.current = null;
+            setIsPending(false);
+          }
+          scrollToBottom();
         }
-        scrollToBottom();
-      });
+      })();
       return;
     }
+
     const text = textareaRef.current?.value ?? "";
     if (!text.trim()) return;
     const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
     clearInput();
     scrollToBottom();
-    startTransition(async () => {
+    abortRef.current = controller;
+    setIsPending(true);
+    void (async () => {
       try {
         const fd = new FormData();
         fd.set("text", text);
         fd.set("model", selectedModel);
         const result = await chatAction(fd);
-        setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+        if (!controller.signal.aborted) {
+          setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+        }
       } catch (err) {
-        setMessages((prev) => [...prev, {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          result: { type: "error", message: err instanceof Error ? err.message : String(err) },
-        }]);
+        if (!controller.signal.aborted) {
+          setMessages((prev) => [...prev, {
+            id: crypto.randomUUID(),
+            role: "assistant",
+            result: { type: "error", message: err instanceof Error ? err.message : String(err) },
+          }]);
+        }
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+          setIsPending(false);
+        }
+        scrollToBottom();
       }
-      scrollToBottom();
-    });
+    })();
   }
 
   function handleSendText(text: string) {
@@ -183,14 +215,25 @@ export function ChatInterface() {
                 >
                   <Icon name="attach_file" size={20} />
                 </button>
-                <button
-                  type="button"
-                  disabled={isPending || (!hasText && !pendingFile)}
-                  onClick={handleSend}
-                  className="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
-                >
-                  <Icon name="send" size={20} />
-                </button>
+                {isPending ? (
+                  <button
+                    type="button"
+                    onClick={handleStop}
+                    title="Stop"
+                    className="w-10 h-10 rounded flex items-center justify-center bg-status-danger/10 text-status-danger border border-status-danger/30 hover:bg-status-danger/20 active:scale-95 transition-all"
+                  >
+                    <Icon name="stop" size={20} />
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!hasText && !pendingFile}
+                    onClick={handleSend}
+                    className="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+                  >
+                    <Icon name="send" size={20} />
+                  </button>
+                )}
               </div>
             </div>
             {/* Status bar */}
