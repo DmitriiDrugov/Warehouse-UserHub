@@ -64,19 +64,23 @@ export class UpdateUnsupportedError extends Error {
 export async function runNlUpdate(
   text: string,
   model?: string,
+  context?: string,
 ): Promise<NlUpdateResult> {
   const llm = getLLM();
   const todayStr = new Date().toISOString().slice(0, 10);
+
+  const contextSection = context
+    ? `\nConversation context — use it to resolve pronouns like "them", "those workers", "all of them", "the ones above":\n---\n${context}\n---\n`
+    : "";
 
   const intent = await llm.completeJSON(
     [
       {
         role: "system",
-        content: `Parse a warehouse management update request into JSON.
-
+        content: `Parse a warehouse management update request into JSON.${contextSection}
 ONLY supported operation:
   grant_certificate — assign a training / compliance certificate to one or more workers.
-  Output: {"op":"grant_certificate","workers":["name"],"certificateCode":"code","issuedAt":"YYYY-MM-DD","expiresAt":"YYYY-MM-DD or null"}
+  Output: {"op":"grant_certificate","workers":["full name"],"certificateCode":"code","issuedAt":"YYYY-MM-DD","expiresAt":"YYYY-MM-DD or null"}
 
 Anything else:
   Output: {"op":"unsupported","reason":"<one short sentence>"}
@@ -84,14 +88,14 @@ Anything else:
 Rules:
 - Today = ${todayStr}. Substitute "today" / "todays date" with this value.
 - certificateCode: snake_case code inferred from context (e.g. first_aid, forklift, hazmat, fire_safety, evacuation_warden).
-- workers: array of names / surnames exactly as given in the request.
+- workers: extract full names from the request text OR from the conversation context above if the request uses pronouns ("them", "those", "all of them").
 - expiresAt: include only when explicitly stated in the request; otherwise null.
 - Output JSON only. No prose, no fences.`,
       },
       { role: "user", content: text.slice(0, 600) },
     ],
     UpdateIntentSchema,
-    { temperature: 0, maxTokens: 200, model },
+    { temperature: 0, maxTokens: 400, model },
   );
 
   if (intent.op === "unsupported") {

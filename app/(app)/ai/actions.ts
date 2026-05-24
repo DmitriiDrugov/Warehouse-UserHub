@@ -61,6 +61,9 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
   }
 
   const { text, model } = parsed.data;
+  // Conversation context: serialized recent messages from the client so the
+  // LLM can resolve references like "them" / "those workers" across turns.
+  const context = ((formData.get("context") as string | null) ?? "").slice(0, 4000);
   const intent = await classifyIntent(text, model);
 
   if (intent === "unsupported") {
@@ -91,7 +94,7 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
 
   if (intent === "update") {
     try {
-      const result = await runNlUpdate(text, model);
+      const result = await runNlUpdate(text, model, context || undefined);
       return {
         type: "update",
         operation: result.operation,

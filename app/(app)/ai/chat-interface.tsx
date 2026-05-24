@@ -49,6 +49,40 @@ export function ChatInterface() {
     setHasText(false);
   }
 
+  // Serialize the last N messages into plain text so the LLM can resolve
+  // pronouns like "them" / "those workers" from a previous query result.
+  function buildContext(msgs: ChatMessage[]): string {
+    const recent = msgs.slice(-6); // at most 3 exchanges
+    const parts: string[] = [];
+    for (const msg of recent) {
+      if (msg.role === "user") {
+        parts.push(`User: ${msg.text}`);
+      } else {
+        const r = msg.result;
+        if (r.type === "query") {
+          if (r.rows.length === 0) {
+            parts.push("Assistant [query]: returned 0 rows");
+          } else {
+            const header = r.columns.join(" | ");
+            const rows = r.rows
+              .slice(0, 20)
+              .map((row) => r.columns.map((c) => String(row[c] ?? "—")).join(" | "))
+              .join("\n");
+            const more = r.rows.length > 20 ? `\n… (${r.rows.length - 20} more rows)` : "";
+            parts.push(`Assistant [query result, ${r.rows.length} rows]:\n${header}\n${rows}${more}`);
+          }
+        } else if (r.type === "update") {
+          parts.push(`Assistant [update]: ${r.summary}`);
+        } else if (r.type === "provision") {
+          parts.push(`Assistant [provision]: ${r.explanation}`);
+        } else if (r.type === "unsupported" || r.type === "error") {
+          parts.push(`Assistant: ${r.message}`);
+        }
+      }
+    }
+    return parts.join("\n\n");
+  }
+
   function handleStop() {
     abortRef.current?.abort();
     abortRef.current = null;
@@ -65,11 +99,13 @@ export function ChatInterface() {
     scrollToBottom();
     abortRef.current = controller;
     setIsPending(true);
+    const context = buildContext(messages);
     void (async () => {
       try {
         const fd = new FormData();
         fd.set("text", text);
         fd.set("model", selectedModel);
+        if (context) fd.set("context", context);
         const result = await chatAction(fd);
         if (!controller.signal.aborted) {
           setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
