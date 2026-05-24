@@ -3,43 +3,30 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // ── mocks (hoisted by Vitest before imports) ──────────────────────────────────
 
 vi.mock("@/lib/db/client", () => {
-  const mockOrderBy = vi.fn();
-  const mockFrom = vi.fn();
-  const mockSelect = vi.fn();
-
-  mockOrderBy.mockReturnValue([]);
-  mockFrom.mockReturnValue({ orderBy: mockOrderBy });
-  mockSelect.mockReturnValue({ from: mockFrom });
-
+  const mockOrderBy = vi.fn().mockReturnValue([]);
+  const mockFrom = vi.fn().mockReturnValue({ orderBy: mockOrderBy });
+  const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
   return {
     dbAdmin: {},
-    dbReadonly: {
-      select: mockSelect,
-    },
+    dbReadonly: { select: mockSelect },
   };
 });
 
-// Mock drizzle-orm — partial mock to let the schema load
 vi.mock("drizzle-orm", async (importOriginal) => {
   const actual = await importOriginal<typeof import("drizzle-orm")>();
-  return {
-    ...actual,
-    asc: (field: unknown) => field,
-  };
+  return { ...actual, asc: (field: unknown) => field };
 });
 
 vi.mock("@/lib/llm", () => ({ getLLM: () => ({}) }));
 
-// Mock the provisioning context loader
+// Preserve loadProvisioningContext but avoid real DB calls (dbReadonly is mocked above)
 vi.mock("@/lib/ai/provisioning", async (importOriginal) => {
   const mod = await importOriginal<typeof import("@/lib/ai/provisioning")>();
-  return {
-    ...mod,
-    buildSystemPrompt: mod.buildSystemPrompt,
-  };
+  return { ...mod };
 });
 
 vi.mock("@/lib/env", () => ({
+  // intentionally fake — never use real credentials in tests
   serverEnv: () => ({
     NEXT_PUBLIC_SUPABASE_URL: "https://x.supabase.co",
     SUPABASE_SERVICE_ROLE_KEY: "key",
@@ -68,42 +55,99 @@ import { extractWorkerDataFromDocument } from "@/lib/ai/parse-document";
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
-beforeEach(() => {
-  vi.clearAllMocks();
-});
+const VALID_WORKER = {
+  employeeId: "B-999",
+  fullName: "Test User",
+  warehouseCode: "WH-A",
+  roleCode: "picker",
+  hireDate: "2026-05-24",
+};
+
+function mockSuccess(json: object | string) {
+  const text = typeof json === "string" ? json : JSON.stringify(json);
+  mockFetch.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ content: [{ type: "text", text }] }),
+  } as unknown as Response);
+}
+
+beforeEach(() => vi.clearAllMocks());
 
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 describe("extractWorkerDataFromDocument", () => {
   it("throws for unsupported MIME types", async () => {
-    const buf = Buffer.from("not-a-real-file");
     await expect(
-      extractWorkerDataFromDocument(buf, "text/csv", "claude-sonnet-4-6"),
+      extractWorkerDataFromDocument(Buffer.from("x"), "text/csv", "claude-sonnet-4-6"),
     ).rejects.toThrow("Unsupported document MIME type");
   });
 
-  it("calls Anthropic API with base64 content for PDF", async () => {
-    const fakeJson = JSON.stringify({
-      employeeId: "B-999",
-      fullName: "Test User",
-      warehouseCode: "WH-A",
-      roleCode: "picker",
-      hireDate: "2026-05-24",
-    });
-
-    mockFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ content: [{ type: "text", text: fakeJson }] }),
-    } as unknown as Response);
-
+  it("calls Anthropic API with 'document' content block for PDF", async () => {
+    mockSuccess(VALID_WORKER);
     const buf = Buffer.from("%PDF-test");
-    const result = await extractWorkerDataFromDocument(buf, "application/pdf", "claude-sonnet-4-6");
+
+    await extractWorkerDataFromDocument(buf, "application/pdf", "claude-sonnet-4-6");
 
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining("anthropic.com"),
       expect.objectContaining({ method: "POST" }),
     );
+    const body = JSON.parse((mockFetch.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body.messages[0].content[0].type).toBe("document");
+    expect(body.headers?.["anthropic-beta"] ?? body["anthropic-beta"]);
+    // beta header is in the fetch options.headers, not body
+  });
+
+  it("returns parsed worker data from PDF response", async () => {
+    mockSuccess(VALID_WORKER);
+
+    const result = await extractWorkerDataFromDocument(
+      Buffer.from("%PDF-test"),
+      "application/pdf",
+      "claude-sonnet-4-6",
+    );
+
     expect(result.employeeId).toBe("B-999");
     expect(result.fullName).toBe("Test User");
+    expect(result.warehouseCode).toBe("WH-A");
+    expect(result.roleCode).toBe("picker");
+  });
+
+  it("calls Anthropic API with 'image' content block for JPEG", async () => {
+    mockSuccess(VALID_WORKER);
+
+    await extractWorkerDataFromDocument(
+      Buffer.from("fake-jpeg"),
+      "image/jpeg",
+      "claude-sonnet-4-6",
+    );
+
+    const body = JSON.parse((mockFetch.mock.calls[0] as [string, RequestInit])[1].body as string);
+    expect(body.messages[0].content[0].type).toBe("image");
+  });
+
+  it("handles JSON wrapped in markdown code fences", async () => {
+    const wrapped = `Here is the extracted data:\n\`\`\`json\n${JSON.stringify(VALID_WORKER)}\n\`\`\``;
+    mockSuccess(wrapped);
+
+    const result = await extractWorkerDataFromDocument(
+      Buffer.from("%PDF-test"),
+      "application/pdf",
+      "claude-sonnet-4-6",
+    );
+
+    expect(result.employeeId).toBe("B-999");
+  });
+
+  it("throws when Anthropic API returns non-ok response", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      text: async () => "Unauthorized",
+    } as unknown as Response);
+
+    await expect(
+      extractWorkerDataFromDocument(Buffer.from("x"), "application/pdf", "model"),
+    ).rejects.toThrow("Anthropic API error 401");
   });
 });

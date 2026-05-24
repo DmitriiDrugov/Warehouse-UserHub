@@ -12,10 +12,8 @@
 
 import { z } from "zod";
 import { serverEnv } from "../env";
-import { buildSystemPrompt, type ProvisioningContext } from "./provisioning";
-import { dbReadonly } from "../db/client";
-import { roles, warehouses } from "../db/schema";
-import { asc } from "drizzle-orm";
+import { extractJsonBlock } from "../llm/json-extract";
+import { buildSystemPrompt, loadProvisioningContext } from "./provisioning";
 
 export const SUPPORTED_MIME_TYPES = [
   "application/pdf",
@@ -46,20 +44,6 @@ const IntentFromDocSchema = z.object({
 
 export type DocumentIntent = z.infer<typeof IntentFromDocSchema>;
 
-async function loadContext(): Promise<ProvisioningContext> {
-  const [warehouseRows, roleRows] = await Promise.all([
-    dbReadonly
-      .select({ code: warehouses.code, name: warehouses.name, location: warehouses.location })
-      .from(warehouses)
-      .orderBy(asc(warehouses.code)),
-    dbReadonly
-      .select({ code: roles.code, name: roles.name, description: roles.description })
-      .from(roles)
-      .orderBy(asc(roles.code)),
-  ]);
-  return { warehouses: warehouseRows, roles: roleRows };
-}
-
 /**
  * Call the Anthropic API directly with a document content block so Claude
  * can read the file and extract worker data.
@@ -76,7 +60,7 @@ export async function extractWorkerDataFromDocument(
   }
 
   const env = serverEnv();
-  const ctx = await loadContext();
+  const ctx = await loadProvisioningContext();
   const systemPrompt =
     "Extract warehouse worker registration data from the attached document.\n\n" +
     buildSystemPrompt(ctx);
@@ -108,7 +92,7 @@ export async function extractWorkerDataFromDocument(
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1024,
+      max_tokens: 2048,
       temperature: 0,
       system: systemPrompt,
       messages: [
@@ -131,13 +115,13 @@ export async function extractWorkerDataFromDocument(
     throw new Error(`Anthropic API error ${response.status}: ${body}`);
   }
 
-  const data = await response.json() as {
+  const data = (await response.json()) as {
     content?: Array<{ type: string; text?: string }>;
     error?: { message?: string };
   };
 
   if (data.error) {
-    throw new Error(`Anthropic error: ${data.error.message}`);
+    throw new Error(`Anthropic error: ${data.error.message ?? "unknown"}`);
   }
 
   const textBlock = data.content?.find((b) => b.type === "text");
@@ -145,8 +129,8 @@ export async function extractWorkerDataFromDocument(
     throw new Error("Anthropic returned no text content");
   }
 
-  // Extract JSON from the response (might be wrapped in markdown code fences)
-  const raw = textBlock.text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
+  // Use the shared tolerant extractor — handles prose-before-fence, raw JSON, etc.
+  const raw = extractJsonBlock(textBlock.text) ?? textBlock.text.trim();
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);

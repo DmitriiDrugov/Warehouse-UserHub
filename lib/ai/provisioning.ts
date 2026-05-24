@@ -82,7 +82,7 @@ export function buildSystemPrompt(ctx: ProvisioningContext): string {
   ].join("\n");
 }
 
-async function loadProvisioningContext(): Promise<ProvisioningContext> {
+export async function loadProvisioningContext(): Promise<ProvisioningContext> {
   const [warehouseRows, roleRows] = await Promise.all([
     dbReadonly
       .select({ code: warehouses.code, name: warehouses.name, location: warehouses.location })
