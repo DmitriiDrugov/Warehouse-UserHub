@@ -47,10 +47,10 @@ const PRIMARY: NavItem[] = [
     match: (p) => p.startsWith("/checklists"),
   },
   {
-    href: "/nl-query",
-    label: "NL Query",
+    href: "/ai",
+    label: "AI Assistant",
     icon: "auto_awesome",
-    match: (p) => p.startsWith("/nl-query"),
+    match: (p) => p.startsWith("/ai"),
   },
   {
     href: "/proposals",
