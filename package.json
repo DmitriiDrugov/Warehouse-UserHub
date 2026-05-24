@@ -23,7 +23,7 @@
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.46.1",
     "drizzle-orm": "^0.36.4",
-    "next": "15.0.3",
+    "next": "15.0.7",
     "node-sql-parser": "^5.3.4",
     "postgres": "^3.4.5",
     "react": "19.0.0",
