@@ -1,0 +1,455 @@
+<!DOCTYPE html><html class="light" lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Warehouse UserHub - AI Assistant</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                "surface-container": "#ededf9",
+                "border-subtle": "#E2E8F0",
+                "surface-container-low": "#f3f3fe",
+                "on-tertiary": "#ffffff",
+                "tertiary-container": "#bc4800",
+                "status-success": "#16A34A",
+                "on-tertiary-container": "#ffede6",
+                "on-primary-container": "#eeefff",
+                "secondary-container": "#8a4cfc",
+                "proposal-violet": "#7C3AED",
+                "surface-container-highest": "#e1e2ed",
+                "on-primary-fixed-variant": "#003ea8",
+                "on-secondary-fixed-variant": "#5a00c6",
+                "inverse-primary": "#b4c5ff",
+                "primary-container": "#2563eb",
+                "secondary": "#712ae2",
+                "outline": "#737686",
+                "primary-fixed": "#dbe1ff",
+                "on-primary-fixed": "#00174b",
+                "on-tertiary-fixed": "#360f00",
+                "tertiary": "#943700",
+                "on-error-container": "#93000a",
+                "on-primary": "#ffffff",
+                "status-neutral": "#64748B",
+                "primary": "#004ac6",
+                "on-secondary": "#ffffff",
+                "on-secondary-fixed": "#25005a",
+                "background": "#faf8ff",
+                "status-danger": "#DC2626",
+                "on-error": "#ffffff",
+                "surface-bright": "#faf8ff",
+                "on-tertiary-fixed-variant": "#7d2d00",
+                "tertiary-fixed-dim": "#ffb596",
+                "bg-page": "#F8FAFC",
+                "on-surface-variant": "#434655",
+                "inverse-on-surface": "#f0f0fb",
+                "primary-fixed-dim": "#b4c5ff",
+                "tertiary-fixed": "#ffdbcd",
+                "surface-container-lowest": "#ffffff",
+                "secondary-fixed-dim": "#d2bbff",
+                "surface-variant": "#e1e2ed",
+                "surface-dim": "#d9d9e5",
+                "error": "#ba1a1a",
+                "inverse-surface": "#2e3039",
+                "surface-tint": "#0053db",
+                "on-surface": "#191b23",
+                "error-container": "#ffdad6",
+                "on-background": "#191b23",
+                "secondary-fixed": "#eaddff",
+                "surface": "#faf8ff",
+                "surface-container-high": "#e7e7f3",
+                "on-secondary-container": "#fffbff",
+                "outline-variant": "#c3c6d7",
+                "status-warning": "#D97706"
+              },
+              "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+              },
+              "spacing": {
+                "gutter": "1.5rem",
+                "table-row-compact": "2.25rem",
+                "sidebar-width": "240px",
+                "container-max": "1600px",
+                "table-row-comfortable": "3rem",
+                "sidebar-collapsed": "64px"
+              },
+              "fontFamily": {
+                "body-sm": ["Inter"],
+                "display": ["Inter"],
+                "status-badge": ["Inter"],
+                "title": ["Inter"],
+                "table-cell": ["Inter"],
+                "body-lg": ["Inter"],
+                "data-mono": ["JetBrains Mono"],
+                "label": ["Inter"],
+                "headline": ["Inter"]
+              },
+              "fontSize": {
+                "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "display": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.02em", "fontWeight": "600"}],
+                "status-badge": ["11px", {"lineHeight": "12px", "fontWeight": "600"}],
+                "title": ["16px", {"lineHeight": "24px", "fontWeight": "600"}],
+                "table-cell": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "body-lg": ["15px", {"lineHeight": "22px", "fontWeight": "400"}],
+                "data-mono": ["13px", {"lineHeight": "20px", "fontWeight": "400"}],
+                "label": ["12px", {"lineHeight": "16px", "letterSpacing": "0.01em", "fontWeight": "500"}],
+                "headline": ["18px", {"lineHeight": "28px", "fontWeight": "600"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .ai-glow {
+            box-shadow: 0 0 15px rgba(124, 58, 237, 0.1);
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="bg-bg-page font-body-sm text-on-surface selection:bg-proposal-violet/20">
+<!-- TopNavBar -->
+<nav class="flex justify-between items-center h-14 px-gutter w-full sticky top-0 z-40 bg-surface-container-lowest border-b border-border-subtle">
+<div class="flex items-center gap-4">
+<span class="font-headline text-headline text-on-surface">Warehouse UserHub</span>
+<div class="h-6 w-[1px] bg-border-subtle mx-2"></div>
+<div class="flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-lg border border-border-subtle cursor-pointer hover:bg-surface-container transition-colors">
+<span class="material-symbols-outlined text-[18px] text-on-surface-variant">warehouse</span>
+<span class="font-label text-label text-on-surface">WH-B Central Logistics</span>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
+</div>
+</div><div class="hidden md:flex items-center gap-2 px-3 py-1 bg-surface-container-low rounded-lg border border-border-subtle cursor-pointer hover:bg-surface-container transition-colors ml-4">
+<span class="material-symbols-outlined text-[18px] text-proposal-violet" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<div class="flex flex-col">
+<span class="text-[10px] text-outline uppercase font-bold leading-none">Model</span>
+<span class="font-label text-label text-on-surface">Warehouse AI 4.0</span>
+</div>
+<span class="material-symbols-outlined text-[16px] text-on-surface-variant">expand_more</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-1">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-lg">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-lg">
+<span class="material-symbols-outlined">help</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-lg">
+<span class="material-symbols-outlined">apps</span>
+</button>
+</div>
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded font-label text-label hover:opacity-90 active:scale-95 transition-all">
+                Check In
+            </button>
+<div class="flex items-center gap-3 pl-2">
+<img alt="Operator identity chip" class="w-8 h-8 rounded-full bg-surface-container border border-border-subtle" data-alt="A high-quality professional portrait of a warehouse logistics manager in a modern clean-room environment. The lighting is bright and even, reflecting a light-mode corporate aesthetic with soft blue and white tones. The subject is calm and focused, wearing a neat navy polo shirt. Minimalist office details are visible in the soft-focus background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCli8sPzDI5yfckgqHQy4AXyr8zww0yonJLh0igjHqmboIyjem2rT3aF1j2joj_-l_3Wlq6j82ua6Zd4DLNpdzIK5xumIxUS38fSftl3ZnG4r4_FnkxiYcN255WLT8y7PKU4zkegkaj63OWpmeIPMxnZkK2w8sCvWPQtoOFdTJfC5UWKLRCl8kksJWhQ80Po02SdS_ybeT5JYdDaadV9PDVERzUmgyLIH8n-03sMY2Ig7OGg3lv76rF0YPD1DFRJuBRJYSnXRgggg">
+</div>
+</div>
+</nav>
+<!-- SideNavBar & Main Content Wrapper -->
+<div class="flex min-h-[calc(100vh-3.5rem)]">
+<!-- SideNavBar -->
+<aside class="flex flex-col h-[calc(100vh-3.5rem)] fixed left-0 top-14 w-sidebar-width bg-surface-container-low border-r border-border-subtle z-30">
+<div class="px-4 py-4">
+<div class="flex items-center gap-3 mb-6 px-2">
+<div class="w-8 h-8 bg-primary rounded flex items-center justify-center text-on-primary">
+<span class="material-symbols-outlined text-[20px]">inventory_2</span>
+</div>
+<div>
+<p class="font-title text-title leading-tight">Main Menu</p>
+<p class="font-label text-[10px] text-on-surface-variant uppercase tracking-wider">v2.4.0-stable</p>
+</div>
+</div>
+<nav class="space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+<span class="font-label text-label">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">group</span>
+<span class="font-label text-label">Workforce</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 bg-surface-container-high text-primary font-bold border-r-4 border-primary transition-all rounded-l-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<span class="font-label text-label">AI Assistant</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">pending_actions</span>
+<span class="font-label text-label">Proposals</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">fact_check</span>
+<span class="font-label text-label">Audit log</span>
+</a>
+</nav>
+</div>
+<div class="mt-auto px-4 py-6 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">support_agent</span>
+<span class="font-label text-label">Support</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2 text-on-surface-variant font-medium hover:bg-surface-container-highest transition-all rounded-lg group" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+<span class="font-label text-label">Settings</span>
+</a>
+</div>
+</aside>
+<!-- Main Area -->
+<main class="ml-sidebar-width flex flex-col w-full h-[calc(100vh-3.5rem)] relative">
+<!-- History Zone -->
+<div class="flex-1 overflow-y-auto custom-scrollbar px-gutter pt-8 pb-32 max-w-[1200px] mx-auto w-full" id="chat-history">
+<div class="space-y-10">
+<!-- Pair 1 -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-end">
+<div class="bg-surface-container-highest/50 px-5 py-3 rounded-xl max-w-2xl border border-border-subtle">
+<p class="text-body-lg font-body-lg">Покажи всех форклифтеристов на складе WH-B</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-proposal-violet/10 flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-proposal-violet text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-2">
+<span class="font-label text-label text-proposal-violet font-semibold">Warehouse AI</span>
+<span class="text-[10px] text-outline">•</span>
+<span class="font-label text-[11px] text-on-surface-variant bg-surface-container px-2 py-0.5 rounded">Found 4 workers · WH-B</span>
+</div>
+<div class="bg-surface-container-lowest border border-border-subtle rounded-lg overflow-hidden shadow-sm">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-border-subtle">
+<th class="px-4 py-2 font-label text-label text-on-surface-variant uppercase tracking-wider">Name</th>
+<th class="px-4 py-2 font-label text-label text-on-surface-variant uppercase tracking-wider">ID</th>
+<th class="px-4 py-2 font-label text-label text-on-surface-variant uppercase tracking-wider">Hire Date</th>
+<th class="px-4 py-2 font-label text-label text-on-surface-variant uppercase tracking-wider">Status</th>
+</tr>
+</thead>
+<tbody class="font-table-cell text-table-cell">
+<tr class="border-b border-border-subtle hover:bg-surface-container-lowest transition-colors h-table-row-compact">
+<td class="px-4 py-2 font-medium">Petrov Aleksey</td>
+<td class="px-4 py-2 font-data-mono text-data-mono">F-0012</td>
+<td class="px-4 py-2">2022-04-15</td>
+<td class="px-4 py-2">
+<span class="flex items-center gap-1.5 text-status-success font-status-badge text-status-badge">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Active
+                                                    </span>
+</td>
+</tr>
+<tr class="border-b border-border-subtle hover:bg-surface-container-lowest transition-colors h-table-row-compact">
+<td class="px-4 py-2 font-medium">Sokolov Dmitry</td>
+<td class="px-4 py-2 font-data-mono text-data-mono">F-0038</td>
+<td class="px-4 py-2">2023-01-10</td>
+<td class="px-4 py-2">
+<span class="flex items-center gap-1.5 text-status-success font-status-badge text-status-badge">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Active
+                                                    </span>
+</td>
+</tr>
+<tr class="border-b border-border-subtle hover:bg-surface-container-lowest transition-colors h-table-row-compact">
+<td class="px-4 py-2 font-medium">Ivanova Maria</td>
+<td class="px-4 py-2 font-data-mono text-data-mono">F-0044</td>
+<td class="px-4 py-2">2023-06-22</td>
+<td class="px-4 py-2">
+<span class="flex items-center gap-1.5 text-status-warning font-status-badge text-status-badge">
+<span class="w-1.5 h-1.5 rounded-full bg-status-warning"></span> On Leave
+                                                    </span>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors h-table-row-compact">
+<td class="px-4 py-2 font-medium">Kuznetsov Igor</td>
+<td class="px-4 py-2 font-data-mono text-data-mono">F-0051</td>
+<td class="px-4 py-2">2024-02-01</td>
+<td class="px-4 py-2">
+<span class="flex items-center gap-1.5 text-status-success font-status-badge text-status-badge">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span> Active
+                                                    </span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+<!-- Pair 2 -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-end">
+<div class="bg-surface-container-highest/50 px-5 py-3 rounded-xl max-w-2xl border border-border-subtle">
+<p class="text-body-lg font-body-lg">Создай пикера Иванов Сергей, ID C-0042, WH-A, выход с завтрашнего числа</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-proposal-violet/10 flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-proposal-violet text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-2">
+<span class="font-label text-label text-proposal-violet font-semibold">Warehouse AI</span>
+</div>
+<!-- Proposal Card -->
+<div class="bg-violet-50/50 border border-dashed border-proposal-violet rounded-xl p-5 space-y-4 ai-glow max-w-lg">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-proposal-violet text-[20px]">bolt</span>
+<span class="font-title text-title text-proposal-violet">✦ Proposal queued</span>
+</div>
+<span class="bg-violet-100 text-proposal-violet px-2 py-0.5 rounded font-status-badge text-status-badge">Awaiting approval</span>
+</div>
+<div class="space-y-2">
+<p class="text-body-sm font-body-sm text-on-surface">Creation of new worker profile for <strong>Ivanov Sergey</strong> with Picker role assigned to <strong>WH-A</strong>. Onboarding scheduled for tomorrow.</p>
+<div class="flex items-center gap-2 text-primary font-label text-label">
+<span class="material-symbols-outlined text-[16px]">link</span>
+<a class="hover:underline" href="#">Draft ID: #1a2b3c4d</a>
+</div>
+</div>
+<div class="flex gap-2 pt-2 border-t border-violet-100">
+<button class="bg-primary text-on-primary px-4 py-1.5 rounded font-label text-label hover:opacity-90 transition-all flex-1">Approve</button>
+<button class="bg-surface-container-lowest border border-border-subtle text-on-surface-variant px-4 py-1.5 rounded font-label text-label hover:bg-white transition-all flex-1">Reject</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Pair 3 -->
+<div class="flex flex-col gap-4">
+<div class="flex justify-end">
+<div class="bg-surface-container-highest/50 px-5 py-3 rounded-xl max-w-2xl border border-border-subtle">
+<p class="text-body-lg font-body-lg">Отзови доступ к SAP у всех кто уволился</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-proposal-violet/10 flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-proposal-violet text-[18px]" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+</div>
+<div class="flex-1 space-y-3">
+<div class="flex items-center gap-2">
+<span class="font-label text-label text-proposal-violet font-semibold">Warehouse AI</span>
+</div>
+<!-- Warning Card -->
+<div class="bg-status-warning/5 border border-status-warning/30 rounded-xl p-5 max-w-lg flex gap-4">
+<span class="material-symbols-outlined text-status-warning shrink-0">warning</span>
+<div>
+<p class="font-title text-title text-on-surface leading-tight mb-1">Action limited</p>
+<p class="text-body-sm font-body-sm text-on-surface-variant">This action isn't supported yet via AI directly due to external SAP security protocols. Please use the <a class="text-primary hover:underline font-medium" href="#">Access Manager</a> module to perform bulk revocations for terminated employees.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Input Zone -->
+<div class="absolute bottom-0 left-0 w-full p-gutter bg-gradient-to-t from-bg-page via-bg-page/95 to-transparent pt-10">
+<div class="max-w-[1200px] mx-auto w-full relative">
+<div class="bg-surface-container-lowest border border-border-subtle rounded-xl shadow-lg p-2 focus-within:ring-2 focus-within:ring-proposal-violet/20 focus-within:border-proposal-violet transition-all">
+<div class="flex items-end gap-2">
+<div class="flex-1 px-3 py-2">
+<textarea class="w-full bg-transparent border-none focus:ring-0 text-body-lg font-body-lg resize-none placeholder:text-outline max-h-40 min-h-[44px]" id="ai-input" placeholder="Ask about workers, schedules, or warehouse audits..." rows="1"></textarea>
+</div>
+<div class="flex items-center gap-2 pb-2 pr-2">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg">
+<span class="material-symbols-outlined">attach_file</span>
+</button>
+<button class="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined">send</span>
+</button>
+</div>
+</div>
+<div class="flex items-center gap-4 px-3 py-1.5 border-t border-border-subtle/50 text-[11px] text-on-surface-variant/70">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-status-success"></span>
+<span class="">Worker DB Sync: 1 min ago</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">shield</span>
+<span class="">Secure Channel Active</span>
+</div>
+</div>
+</div>
+<div class="mt-2 flex justify-center gap-4">
+<button class="px-3 py-1 rounded-full border border-border-subtle bg-white text-label font-label text-on-surface-variant hover:border-proposal-violet hover:text-proposal-violet transition-all">
+                            "Who is on shift in WH-B?"
+                        </button>
+<button class="px-3 py-1 rounded-full border border-border-subtle bg-white text-label font-label text-on-surface-variant hover:border-proposal-violet hover:text-proposal-violet transition-all">
+                            "Generate audit for Zone A"
+                        </button>
+<button class="px-3 py-1 rounded-full border border-border-subtle bg-white text-label font-label text-on-surface-variant hover:border-proposal-violet hover:text-proposal-violet transition-all">
+                            "Show open workforce gaps"
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+<script>
+        // Auto-resize textarea
+        const tx = document.getElementById('ai-input');
+        tx.addEventListener("input", OnInput, false);
+
+        function OnInput() {
+            this.style.height = "auto";
+            this.style.height = (this.scrollHeight) + "px";
+            
+            // Scroll history to bottom if near bottom
+            const history = document.getElementById('chat-history');
+            if (history.scrollHeight - history.scrollTop - history.clientHeight < 100) {
+                history.scrollTop = history.scrollHeight;
+            }
+        }
+
+        // Keep scrolled to bottom initially
+        window.onload = () => {
+            const history = document.getElementById('chat-history');
+            history.scrollTop = history.scrollHeight;
+        };
+
+        // Micro-interaction for buttons
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                let ripple = document.createElement('span');
+                ripple.classList.add('ripple');
+                this.appendChild(ripple);
+                setTimeout(() => { ripple.remove(); }, 600);
+            });
+        });
+    </script>
+<style>
+        .ripple {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            transform: scale(0);
+            animation: ripple-animation 0.6s linear;
+            pointer-events: none;
+        }
+        @keyframes ripple-animation {
+            to {
+                transform: scale(4);
+                opacity: 0;
+            }
+        }
+    </style>
+
+
+</body></html>
