@@ -25,6 +25,7 @@ import {
   appUsers,
   type AiProposal,
   type NewAiProposal,
+  workerDocuments,
 } from "../db/schema";
 import {
   AnomalyFlagPayload,
@@ -40,6 +41,7 @@ import type { ServiceContext } from "./context";
 import { offboardUser, createWarehouseUser } from "./warehouse-users";
 import { revokeCertificate } from "./certificates";
 import { grantAccess } from "./access";
+import { deleteWorkerDocument } from "../storage/worker-documents";
 
 const SYSTEM_OPERATOR_EMAIL = "system@warehouse-userhub.internal";
 
@@ -66,6 +68,46 @@ export async function getSystemOperator(
   }
   cachedSystemOperator = row;
   return row;
+}
+
+/**
+ * After a provision proposal is approved and the worker is created,
+ * link any staged documents (uploaded during AI chat) to the new worker.
+ * Called inside the approveProposal transaction.
+ */
+export async function linkStagedDocuments(
+  tx: DbTx,
+  proposalId: string,
+  workerId: string,
+): Promise<void> {
+  await tx
+    .update(workerDocuments)
+    .set({ workerId })
+    .where(eq(workerDocuments.proposalId, proposalId));
+}
+
+/**
+ * When a provision proposal is rejected, delete any staged documents
+ * (both the DB rows and the Storage objects).
+ * Called inside rejectProposal.
+ */
+export async function deleteStagedDocuments(
+  tx: DbTx,
+  proposalId: string,
+): Promise<void> {
+  const rows = await tx
+    .select({ id: workerDocuments.id, storagePath: workerDocuments.storagePath })
+    .from(workerDocuments)
+    .where(eq(workerDocuments.proposalId, proposalId));
+
+  // Delete storage files (best-effort — don't fail the transaction)
+  await Promise.allSettled(rows.map((r) => deleteWorkerDocument(r.storagePath)));
+
+  if (rows.length > 0) {
+    await tx
+      .delete(workerDocuments)
+      .where(eq(workerDocuments.proposalId, proposalId));
+  }
 }
 
 export type CreateProposalInput<T extends ProposalType = ProposalType> = {
@@ -227,6 +269,7 @@ export async function approveProposal(
         },
         downstreamCtx,
       );
+      await linkStagedDocuments(tx, proposalId, wu.id);
       if (payload.extraPermissionIds?.length) {
         for (const permissionId of payload.extraPermissionIds) {
           await grantAccess(
@@ -374,6 +417,11 @@ export async function rejectProposal(
       after: updated,
     },
   );
+
+  // Delete staged documents (uploaded via AI chat before the proposal was reviewed)
+  if (proposal.type === "provision") {
+    await deleteStagedDocuments(tx, proposalId);
+  }
 
   return updated;
 }
