@@ -32,6 +32,13 @@ export function ChatInterface() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Restore focus to the input when the pending transition finishes.
+  // (disabled={isPending} causes the browser to drop focus automatically,
+  //  so we re-focus once the element becomes enabled again.)
+  useEffect(() => {
+    if (!isPending) textareaRef.current?.focus();
+  }, [isPending]);
+
   function scrollToBottom() {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   }
