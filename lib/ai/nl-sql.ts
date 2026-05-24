@@ -69,6 +69,34 @@ WHERE a.status = 'active'
     q: "How many users at each warehouse are currently offboarded?",
     sql: "SELECT warehouse_code, COUNT(*) AS offboarded_count FROM v_warehouse_users WHERE status = 'offboarded' GROUP BY warehouse_code ORDER BY offboarded_count DESC",
   },
+  // ── Absence / NOT EXISTS patterns ─────────────────────────────────────────
+  // IMPORTANT: "doesn't have", "lacks", "is missing", "no certificate" queries
+  // MUST use NOT EXISTS against the relevant view — never query the view directly.
+  {
+    q: "Which workers do not have a valid first aid certificate?",
+    sql: `SELECT wu.employee_id, wu.full_name, wu.warehouse_code
+FROM v_warehouse_users wu
+WHERE NOT EXISTS (
+  SELECT 1 FROM v_user_certificates vc
+  WHERE vc.warehouse_user_id = wu.warehouse_user_id
+    AND vc.certificate_code = 'first_aid'
+    AND vc.status = 'valid'
+    AND vc.is_expired = false
+)
+ORDER BY wu.full_name`,
+  },
+  {
+    q: "Show workers who have no active access to the WMS system.",
+    sql: `SELECT wu.employee_id, wu.full_name, wu.warehouse_code
+FROM v_warehouse_users wu
+WHERE NOT EXISTS (
+  SELECT 1 FROM v_user_access ua
+  WHERE ua.warehouse_user_id = wu.warehouse_user_id
+    AND ua.system_code = 'wms'
+    AND ua.status = 'active'
+)
+ORDER BY wu.full_name`,
+  },
 ];
 
 function buildPrompt(question: string, maxRows: number): LLMMessage[] {
@@ -86,6 +114,9 @@ function buildPrompt(question: string, maxRows: number): LLMMessage[] {
     "  4. Do not call functions that touch sessions, privileges, files, or sleep.",
     `  5. Include a LIMIT clause ≤ ${maxRows}. If unsure, use LIMIT ${maxRows}.`,
     "  6. Output ONLY the SQL — no explanation, no markdown fences.",
+    "  7. For 'doesn\\'t have', 'lacks', 'missing', 'no certificate/access' questions: use NOT EXISTS",
+    "     with a correlated subquery against v_user_certificates or v_user_access.",
+    "     NEVER query those views directly to answer an absence question — that returns the OPPOSITE set.",
   ].join("\n");
 
   const user = [
