@@ -1,13 +1,10 @@
 /**
  * Extract warehouse worker registration data from an uploaded document
- * (PDF or image) using Claude's vision/document API.
+ * (PDF or image) using Claude's vision API.
  *
- * Uses the Anthropic API directly (raw fetch) because the LLMProvider
- * abstraction only supports text-only messages. Only works when
- * LLM_PROVIDER=anthropic (or if a model override pointing to Anthropic is given).
- *
- * Returns the same Intent shape as provisioning.ts so it flows through
- * the same resolveIntent() logic.
+ * Supports two providers:
+ *   - openrouter: OpenAI-compatible format with image_url (base64 data URL)
+ *   - anthropic:  Native Anthropic format with document/image content blocks
  */
 
 import { z } from "zod";
@@ -44,10 +41,6 @@ const IntentFromDocSchema = z.object({
 
 export type DocumentIntent = z.infer<typeof IntentFromDocSchema>;
 
-/**
- * Call the Anthropic API directly with a document content block so Claude
- * can read the file and extract worker data.
- */
 export async function extractWorkerDataFromDocument(
   buffer: Buffer,
   mimeType: string,
@@ -64,24 +57,105 @@ export async function extractWorkerDataFromDocument(
   const systemPrompt =
     "Extract warehouse worker registration data from the attached document.\n\n" +
     buildSystemPrompt(ctx);
-
   const base64 = buffer.toString("base64");
+  const extractInstruction =
+    "Extract worker registration data from this document and output JSON only (schema as described in the system prompt).";
 
-  // Anthropic content block type depends on MIME:
-  // PDFs → { type: "document", source: { type: "base64", media_type, data } }
-  // Images → { type: "image", source: { type: "base64", media_type, data } }
+  let rawText: string;
+
+  if (env.LLM_PROVIDER === "openrouter") {
+    rawText = await callOpenRouter({ env, model, base64, mimeType, systemPrompt, extractInstruction });
+  } else {
+    rawText = await callAnthropic({ env, model, base64, mimeType, systemPrompt, extractInstruction });
+  }
+
+  const raw = extractJsonBlock(rawText) ?? rawText.trim();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    throw new Error(`Could not parse JSON from document extraction: ${raw.slice(0, 200)}`);
+  }
+
+  return IntentFromDocSchema.parse(parsed);
+}
+
+// ─── OpenRouter (OpenAI-compatible vision format) ─────────────────────────────
+
+async function callOpenRouter(opts: {
+  env: ReturnType<typeof serverEnv>;
+  model: string;
+  base64: string;
+  mimeType: string;
+  systemPrompt: string;
+  extractInstruction: string;
+}): Promise<string> {
+  const { env, model, base64, mimeType, systemPrompt, extractInstruction } = opts;
+  const baseUrl = (env.LLM_BASE_URL ?? "https://openrouter.ai/api/v1").replace(/\/$/, "");
+
+  // OpenAI vision format: base64 data URL works for images and PDFs on Claude via OpenRouter
+  const imageUrl = `data:${mimeType};base64,${base64}`;
+
+  const response = await fetch(`${baseUrl}/chat/completions`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${env.LLM_API_KEY}`,
+      "HTTP-Referer": "https://github.com/warehouse-userhub",
+      "X-Title": "Warehouse UserHub",
+    },
+    body: JSON.stringify({
+      model,
+      temperature: 0,
+      max_tokens: 2048,
+      messages: [
+        { role: "system", content: systemPrompt },
+        {
+          role: "user",
+          content: [
+            { type: "image_url", image_url: { url: imageUrl } },
+            { type: "text", text: extractInstruction },
+          ],
+        },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new Error(`OpenRouter API error ${response.status}: ${body}`);
+  }
+
+  const data = (await response.json()) as {
+    choices?: Array<{ message?: { content?: string | null } }>;
+    error?: { message?: string };
+  };
+
+  if (data.error) throw new Error(`OpenRouter error: ${data.error.message ?? "unknown"}`);
+
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("OpenRouter returned empty content");
+  return content;
+}
+
+// ─── Anthropic native format ──────────────────────────────────────────────────
+
+async function callAnthropic(opts: {
+  env: ReturnType<typeof serverEnv>;
+  model: string;
+  base64: string;
+  mimeType: string;
+  systemPrompt: string;
+  extractInstruction: string;
+}): Promise<string> {
+  const { env, model, base64, mimeType, systemPrompt, extractInstruction } = opts;
+  const baseUrl = (env.LLM_BASE_URL ?? "https://api.anthropic.com/v1").replace(/\/$/, "");
+
   const contentBlock =
     mimeType === "application/pdf"
-      ? {
-          type: "document",
-          source: { type: "base64", media_type: mimeType, data: base64 },
-        }
-      : {
-          type: "image",
-          source: { type: "base64", media_type: mimeType, data: base64 },
-        };
+      ? { type: "document", source: { type: "base64", media_type: mimeType, data: base64 } }
+      : { type: "image", source: { type: "base64", media_type: mimeType, data: base64 } };
 
-  const baseUrl = (env.LLM_BASE_URL ?? "https://api.anthropic.com/v1").replace(/\/$/, "");
   const response = await fetch(`${baseUrl}/messages`, {
     method: "POST",
     headers: {
@@ -100,10 +174,7 @@ export async function extractWorkerDataFromDocument(
           role: "user",
           content: [
             contentBlock,
-            {
-              type: "text",
-              text: "Extract worker registration data from this document and output JSON only (schema as described in the system prompt).",
-            },
+            { type: "text", text: extractInstruction },
           ],
         },
       ],
@@ -120,23 +191,9 @@ export async function extractWorkerDataFromDocument(
     error?: { message?: string };
   };
 
-  if (data.error) {
-    throw new Error(`Anthropic error: ${data.error.message ?? "unknown"}`);
-  }
+  if (data.error) throw new Error(`Anthropic error: ${data.error.message ?? "unknown"}`);
 
   const textBlock = data.content?.find((b) => b.type === "text");
-  if (!textBlock?.text) {
-    throw new Error("Anthropic returned no text content");
-  }
-
-  // Use the shared tolerant extractor — handles prose-before-fence, raw JSON, etc.
-  const raw = extractJsonBlock(textBlock.text) ?? textBlock.text.trim();
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`Could not parse JSON from document extraction: ${raw.slice(0, 200)}`);
-  }
-
-  return IntentFromDocSchema.parse(parsed);
+  if (!textBlock?.text) throw new Error("Anthropic returned no text content");
+  return textBlock.text;
 }

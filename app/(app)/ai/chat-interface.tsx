@@ -26,6 +26,7 @@ const SUGGESTIONS = [
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasText, setHasText] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isPending, startTransition] = useTransition();
   const [selectedModel] = useSelectedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -33,8 +34,6 @@ export function ChatInterface() {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   // Restore focus to the input when the pending transition finishes.
-  // (disabled={isPending} causes the browser to drop focus automatically,
-  //  so we re-focus once the element becomes enabled again.)
   useEffect(() => {
     if (!isPending) textareaRef.current?.focus();
   }, [isPending]);
@@ -43,13 +42,38 @@ export function ChatInterface() {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
   }
 
-  function handleSendText(text: string) {
+  function clearInput() {
+    if (textareaRef.current) {
+      textareaRef.current.value = "";
+      textareaRef.current.style.height = "auto";
+    }
+    setHasText(false);
+    setPendingFile(null);
+  }
+
+  function handleSend() {
+    if (pendingFile) {
+      const file = pendingFile;
+      const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text: `📄 ${file.name}`, fileName: file.name };
+      setMessages((prev) => [...prev, userMsg]);
+      clearInput();
+      scrollToBottom();
+      startTransition(async () => {
+        const fd = new FormData();
+        fd.set("file", file);
+        fd.set("model", selectedModel);
+        const result = await uploadDocAction(fd);
+        setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
+        scrollToBottom();
+      });
+      return;
+    }
+    const text = textareaRef.current?.value ?? "";
     if (!text.trim()) return;
     const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text };
     setMessages((prev) => [...prev, userMsg]);
-    if (textareaRef.current) { textareaRef.current.value = ""; textareaRef.current.style.height = "auto"; setHasText(false); textareaRef.current.focus(); }
+    clearInput();
     scrollToBottom();
-
     startTransition(async () => {
       const fd = new FormData();
       fd.set("text", text);
@@ -60,25 +84,15 @@ export function ChatInterface() {
     });
   }
 
-  function handleSendFile(file: File) {
-    const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text: `📄 ${file.name}`, fileName: file.name };
-    setMessages((prev) => [...prev, userMsg]);
-    scrollToBottom();
-
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.set("file", file);
-      fd.set("model", selectedModel);
-      const result = await uploadDocAction(fd);
-      setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
-      scrollToBottom();
-    });
+  function handleSendText(text: string) {
+    if (textareaRef.current) textareaRef.current.value = text;
+    handleSend();
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendText(textareaRef.current?.value ?? "");
+      handleSend();
     }
   }
 
@@ -102,6 +116,21 @@ export function ChatInterface() {
           <div className="bg-surface-container-lowest border border-border-subtle rounded-xl shadow-lg p-2 focus-within:ring-2 focus-within:ring-proposal-violet/20 focus-within:border-proposal-violet transition-all">
             <div className="flex items-end gap-2">
               <div className="flex-1 px-3 py-2">
+                {pendingFile && (
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <span className="flex items-center gap-1 bg-surface-container border border-border-subtle rounded-full px-2 py-0.5 text-[12px] text-on-surface max-w-xs">
+                      <Icon name="description" size={14} className="shrink-0 text-proposal-violet" />
+                      <span className="truncate">{pendingFile.name}</span>
+                      <button
+                        type="button"
+                        onClick={() => setPendingFile(null)}
+                        className="ml-0.5 text-on-surface-variant hover:text-status-danger shrink-0"
+                      >
+                        <Icon name="close" size={14} />
+                      </button>
+                    </span>
+                  </div>
+                )}
                 <textarea
                   ref={textareaRef}
                   rows={1}
@@ -125,7 +154,7 @@ export function ChatInterface() {
                   className="hidden"
                   onChange={(e) => {
                     const file = e.target.files?.[0];
-                    if (file) handleSendFile(file);
+                    if (file) setPendingFile(file);
                     e.target.value = "";
                   }}
                 />
@@ -140,8 +169,8 @@ export function ChatInterface() {
                 </button>
                 <button
                   type="button"
-                  disabled={isPending || !hasText}
-                  onClick={() => handleSendText(textareaRef.current?.value ?? "")}
+                  disabled={isPending || (!hasText && !pendingFile)}
+                  onClick={handleSend}
                   className="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
                 >
                   <Icon name="send" size={20} />
