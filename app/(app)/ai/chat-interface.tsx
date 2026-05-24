@@ -4,14 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useSelectedModel } from "@/components/ui/model-selector";
-import type { ChatResult } from "./actions";
-import { chatAction } from "./actions";
-
-// ─── Message types ────────────────────────────────────────────────────────────
-
-type UserMessage = { id: string; role: "user"; text: string };
-type AssistantMessage = { id: string; role: "assistant"; result: ChatResult };
-type ChatMessage = UserMessage | AssistantMessage;
+import type {
+  ChatMessage,
+  ChatResult,
+  QueryResult,
+  UserChatMessage,
+} from "@/lib/ai/chat-types";
+import { buildExcelCsv, makeCsvReportFileName } from "@/lib/reports/csv";
+import { chatAction, clearChatHistoryAction, uploadDocumentProposalAction } from "./actions";
 
 // ─── Quick suggestion chips (matching Stitch design) ─────────────────────────
 
@@ -23,14 +23,17 @@ const SUGGESTIONS = [
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export function ChatInterface() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
+export function ChatInterface({ initialMessages = [] }: { initialMessages?: ChatMessage[] }) {
+  const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const [hasText, setHasText] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [selectedModel] = useSelectedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const canSend = hasText || selectedFile !== null;
 
   // Restore focus to the input when the pending transition finishes.
   useEffect(() => {
@@ -46,6 +49,8 @@ export function ChatInterface() {
       textareaRef.current.value = "";
       textareaRef.current.style.height = "auto";
     }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setSelectedFile(null);
     setHasText(false);
   }
 
@@ -61,7 +66,7 @@ export function ChatInterface() {
         const r = msg.result;
         if (r.type === "query") {
           if (r.rows.length === 0) {
-            parts.push("Assistant [query]: returned 0 rows");
+            parts.push(`Assistant [query]: returned 0 rows\nSQL: ${r.sql}`);
           } else {
             const header = r.columns.join(" | ");
             const rows = r.rows
@@ -69,7 +74,9 @@ export function ChatInterface() {
               .map((row) => r.columns.map((c) => String(row[c] ?? "—")).join(" | "))
               .join("\n");
             const more = r.rows.length > 20 ? `\n… (${r.rows.length - 20} more rows)` : "";
-            parts.push(`Assistant [query result, ${r.rows.length} rows]:\n${header}\n${rows}${more}`);
+            parts.push(
+              `Assistant [query result, ${r.rows.length} rows]:\nSQL: ${r.sql}\n${header}\n${rows}${more}`,
+            );
           }
         } else if (r.type === "update") {
           parts.push(`Assistant [update]: ${r.summary}`);
@@ -89,11 +96,20 @@ export function ChatInterface() {
     setIsPending(false);
   }
 
-  function handleSend() {
+  function handleSend(options: { fileOverride?: File | null } = {}) {
     const controller = new AbortController();
     const text = textareaRef.current?.value ?? "";
-    if (!text.trim()) return;
-    const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text };
+    const trimmedText = text.trim();
+    const file = options.fileOverride === undefined ? selectedFile : options.fileOverride;
+    if (!trimmedText && !file) return;
+
+    const userText = file
+      ? trimmedText
+        ? `${trimmedText}\n\nAttached: ${file.name}`
+        : `Uploaded document: ${file.name}`
+      : text;
+
+    const userMsg: UserChatMessage = { id: crypto.randomUUID(), role: "user", text: userText };
     setMessages((prev) => [...prev, userMsg]);
     clearInput();
     scrollToBottom();
@@ -103,10 +119,17 @@ export function ChatInterface() {
     void (async () => {
       try {
         const fd = new FormData();
-        fd.set("text", text);
         fd.set("model", selectedModel);
-        if (context) fd.set("context", context);
-        const result = await chatAction(fd);
+        let result: ChatResult;
+        if (file) {
+          fd.set("file", file);
+          if (trimmedText) fd.set("notes", trimmedText);
+          result = await uploadDocumentProposalAction(fd);
+        } else {
+          fd.set("text", text);
+          if (context) fd.set("context", context);
+          result = await chatAction(fd);
+        }
         if (!controller.signal.aborted) {
           setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
         }
@@ -130,7 +153,9 @@ export function ChatInterface() {
 
   function handleSendText(text: string) {
     if (textareaRef.current) textareaRef.current.value = text;
-    handleSend();
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setSelectedFile(null);
+    handleSend({ fileOverride: null });
   }
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
@@ -176,6 +201,27 @@ export function ChatInterface() {
                 />
               </div>
               <div className="flex items-center gap-2 pb-2 pr-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="application/pdf,image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.currentTarget.files?.[0];
+                    if (file) setSelectedFile(file);
+                    event.currentTarget.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => fileInputRef.current?.click()}
+                  title="Attach document"
+                  aria-label="Attach document"
+                  className="w-10 h-10 rounded flex items-center justify-center border border-border-subtle text-on-surface-variant hover:text-proposal-violet hover:border-proposal-violet/40 hover:bg-surface-container-low active:scale-95 transition-all disabled:opacity-50"
+                >
+                  <Icon name="attach_file" size={20} />
+                </button>
                 {isPending ? (
                   <button
                     type="button"
@@ -188,8 +234,8 @@ export function ChatInterface() {
                 ) : (
                   <button
                     type="button"
-                    disabled={!hasText}
-                    onClick={handleSend}
+                    disabled={!canSend}
+                    onClick={() => handleSend()}
                     className="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
                   >
                     <Icon name="send" size={20} />
@@ -197,12 +243,55 @@ export function ChatInterface() {
                 )}
               </div>
             </div>
+            {selectedFile ? (
+              <div className="px-3 pb-2">
+                <div className="inline-flex max-w-full items-center gap-2 rounded-md border border-border-subtle bg-surface-container-low px-2.5 py-1.5 text-on-surface-variant">
+                  <Icon name="description" size={16} className="shrink-0" />
+                  <span className="truncate font-label text-[12px]">
+                    {selectedFile.name}
+                  </span>
+                  <span className="shrink-0 font-label text-[11px] text-outline">
+                    {formatFileSize(selectedFile.size)}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={isPending}
+                    onClick={() => {
+                      setSelectedFile(null);
+                      if (fileInputRef.current) fileInputRef.current.value = "";
+                    }}
+                    title="Remove attachment"
+                    aria-label="Remove attachment"
+                    className="shrink-0 rounded p-0.5 hover:bg-surface-container-highest hover:text-status-danger transition-colors"
+                  >
+                    <Icon name="close" size={16} />
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {/* Status bar */}
             <div className="flex items-center gap-4 px-3 py-1.5 border-t border-border-subtle/50 text-[11px] text-on-surface-variant/70">
               <div className="flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-status-success" />
                 <span>Secure Channel Active</span>
               </div>
+              {messages.length > 0 ? (
+                <button
+                  type="button"
+                  disabled={isPending}
+                  onClick={() => {
+                    void (async () => {
+                      const result = await clearChatHistoryAction();
+                      if (result.ok) setMessages([]);
+                    })();
+                  }}
+                  title="Clear chat history"
+                  aria-label="Clear chat history"
+                  className="ml-auto rounded p-1 text-on-surface-variant hover:text-status-danger hover:bg-surface-container-low transition-colors disabled:opacity-50"
+                >
+                  <Icon name="delete_sweep" size={16} />
+                </button>
+              ) : null}
             </div>
           </div>
           {/* Suggestion chips */}
@@ -244,12 +333,87 @@ function MessagePair({ message }: { message: ChatMessage }) {
       <div className="w-8 h-8 rounded-full bg-proposal-violet/10 flex items-center justify-center shrink-0 mt-1">
         <Icon name="auto_awesome" size={18} className="text-proposal-violet" fill />
       </div>
-      <div className="flex-1 space-y-3">
-        <div className="flex items-center gap-2">
+      <div className="flex-1 space-y-3 min-w-0">
+        <div className="flex items-center justify-between gap-3 max-w-3xl">
           <span className="font-label text-label text-proposal-violet font-semibold">Warehouse AI</span>
+          {result.type === "query" && result.rows.length > 0 ? (
+            <QueryReportMenu result={result} />
+          ) : null}
         </div>
         <ResultRenderer result={result} />
       </div>
+    </div>
+  );
+}
+
+function QueryReportMenu({ result }: { result: QueryResult }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function handleMouseDown(event: MouseEvent) {
+      if (!menuRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpen(false);
+    }
+
+    document.addEventListener("mousedown", handleMouseDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleMouseDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  function downloadCsvReport() {
+    const csv = buildExcelCsv(result.columns, result.rows);
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = makeCsvReportFileName();
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setOpen(false);
+  }
+
+  return (
+    <div ref={menuRef} className="relative shrink-0">
+      <button
+        type="button"
+        title="More actions"
+        aria-label="More actions"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((value) => !value)}
+        className="w-8 h-8 rounded flex items-center justify-center text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low border border-transparent hover:border-border-subtle transition-colors"
+      >
+        <Icon name="more_vert" size={18} />
+      </button>
+      {open ? (
+        <div
+          role="menu"
+          className="absolute right-0 top-full z-20 mt-1 w-44 rounded-lg border border-border-subtle bg-surface-container-lowest p-1 shadow-lg"
+        >
+          <button
+            type="button"
+            role="menuitem"
+            onClick={downloadCsvReport}
+            className="w-full flex items-center gap-2 rounded px-3 py-2 font-label text-label text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface transition-colors"
+          >
+            <Icon name="download" size={16} />
+            <span>Export CSV</span>
+          </button>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -310,6 +474,19 @@ function ResultRenderer({ result }: { result: ChatResult }) {
         </div>
         <div className="space-y-2">
           <p className="font-body-sm text-body-sm text-on-surface">{result.explanation}</p>
+          {result.documentFileName ? (
+            <div className="flex items-center gap-2 text-on-surface-variant font-label text-[12px] min-w-0">
+              <Icon name="description" size={16} className="shrink-0" />
+              <span className="truncate">{result.documentFileName}</span>
+              <span className="shrink-0 text-status-success">staged</span>
+            </div>
+          ) : null}
+          {result.documentWarning ? (
+            <div className="flex items-start gap-2 text-status-warning font-body-sm text-body-sm">
+              <Icon name="warning" size={16} className="shrink-0 mt-0.5" />
+              <span>{result.documentWarning}</span>
+            </div>
+          ) : null}
           <div className="flex items-center gap-2 text-primary font-label text-label">
             <Icon name="link" size={16} />
             <Link href={`/proposals/${result.proposalId}`} className="hover:underline">
@@ -400,4 +577,10 @@ function formatCell(v: unknown): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }

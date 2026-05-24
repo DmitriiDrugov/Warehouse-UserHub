@@ -491,6 +491,32 @@ export const workerDocuments = pgTable(
 );
 
 // ---------------------------------------------------------------------------
+// AI chat history
+// ---------------------------------------------------------------------------
+
+export const aiChatMessages = pgTable(
+  "ai_chat_messages",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    operatorId: uuid("operator_id")
+      .notNull()
+      .references(() => appUsers.id, { onDelete: "cascade" }),
+    role: text("role").notNull(),
+    content: text("content"),
+    result: jsonb("result"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .default(sql`now()`),
+  },
+  (t) => ({
+    byOperatorCreatedAt: index("ai_chat_messages_by_operator_created_at").on(
+      t.operatorId,
+      t.createdAt,
+    ),
+  }),
+);
+
+// ---------------------------------------------------------------------------
 // Append-only audit log
 // ---------------------------------------------------------------------------
 
@@ -542,6 +568,7 @@ export const appUsersRelations = relations(appUsers, ({ many }) => ({
   revokedAccess: many(userAccess, { relationName: "revokedAccess" }),
   auditEntries: many(auditLog),
   reviewedProposals: many(aiProposals),
+  aiChatMessages: many(aiChatMessages),
 }));
 
 export const appUserWarehousesRelations = relations(
@@ -662,6 +689,13 @@ export const workerDocumentsRelations = relations(
   }),
 );
 
+export const aiChatMessagesRelations = relations(aiChatMessages, ({ one }) => ({
+  operator: one(appUsers, {
+    fields: [aiChatMessages.operatorId],
+    references: [appUsers.id],
+  }),
+}));
+
 export const checklistTemplatesRelations = relations(
   checklistTemplates,
   ({ one, many }) => ({
@@ -761,3 +795,5 @@ export type AuditLogEntry = typeof auditLog.$inferSelect;
 export type NewAuditLogEntry = typeof auditLog.$inferInsert;
 export type WorkerDocument = typeof workerDocuments.$inferSelect;
 export type NewWorkerDocument = typeof workerDocuments.$inferInsert;
+export type AiChatMessage = typeof aiChatMessages.$inferSelect;
+export type NewAiChatMessage = typeof aiChatMessages.$inferInsert;

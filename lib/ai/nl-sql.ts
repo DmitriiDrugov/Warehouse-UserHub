@@ -1,7 +1,7 @@
 /**
  * §6.1 — Natural-language SQL pipeline.
  *
- *   runNlQuery(text) → { sql, rows, columns, appliedLimit, tablesUsed }
+ *   runNlQuery(text, options?) → { sql, rows, columns, appliedLimit, tablesUsed }
  *
  * Strict ordering (any failure short-circuits, raising NlQueryError):
  *
@@ -97,13 +97,46 @@ WHERE NOT EXISTS (
 )
 ORDER BY wu.full_name`,
   },
+  {
+    q: "Follow-up after asking about Berlin warehouse workers: How many of them have first aid certificate, and show me who",
+    sql: `SELECT DISTINCT wu.employee_id, wu.full_name, wu.warehouse_code
+FROM v_warehouse_users wu
+JOIN v_user_certificates c ON c.warehouse_user_id = wu.warehouse_user_id
+WHERE wu.warehouse_name ILIKE '%Berlin%'
+  AND c.certificate_code = 'first_aid'
+  AND c.status = 'valid'
+  AND c.is_expired = false
+ORDER BY wu.full_name`,
+  },
 ];
 
-function buildPrompt(question: string, maxRows: number): LLMMessage[] {
+export type RunNlQueryOptions = {
+  context?: string;
+  model?: string;
+};
+
+function buildPrompt(
+  question: string,
+  maxRows: number,
+  context?: string,
+): LLMMessage[] {
   const viewBlock = describeViewsForPrompt();
   const fewshotBlock = FEWSHOTS.map(
     (s, i) => `Example ${i + 1}\nQ: ${s.q}\nSQL:\n${s.sql}`,
   ).join("\n\n");
+  const contextBlock = context
+    ? [
+        "Conversation context for follow-up resolution:",
+        "---",
+        context,
+        "---",
+        "",
+        "Use this context only to resolve references such as 'them', 'those workers', 'that warehouse', 'same group', or 'the previous result'.",
+        "When the previous assistant message includes SQL, preserve its WHERE filters unless the new question changes them.",
+        "Do not answer from a previous aggregate count; generate a fresh SELECT for the current question.",
+        "",
+      ].join("\n")
+    : "";
 
   const system = [
     "You translate one English question into one PostgreSQL SELECT against the reporting views listed below.",
@@ -117,6 +150,9 @@ function buildPrompt(question: string, maxRows: number): LLMMessage[] {
     "  7. For 'doesn\\'t have', 'lacks', 'missing', 'no certificate/access' questions: use NOT EXISTS",
     "     with a correlated subquery against v_user_certificates or v_user_access.",
     "     NEVER query those views directly to answer an absence question — that returns the OPPOSITE set.",
+    "  8. If a question asks 'how many' AND also asks to show/list/who, return the matching people rows, not a single aggregate-only COUNT row.",
+    "     The app displays the returned row count above the table.",
+    "  9. For certificate questions, use certificate_code and require status = 'valid' and is_expired = false unless the user asks for expired/revoked certificates.",
   ].join("\n");
 
   const user = [
@@ -126,6 +162,7 @@ function buildPrompt(question: string, maxRows: number): LLMMessage[] {
     "Few-shot examples:",
     fewshotBlock,
     "",
+    contextBlock,
     `Question: ${question}`,
     "SQL:",
   ].join("\n");
@@ -142,18 +179,25 @@ function stripFences(s: string): string {
   return s.trim();
 }
 
-export async function runNlQuery(question: string): Promise<NlQueryResult> {
+export async function runNlQuery(
+  question: string,
+  options: RunNlQueryOptions = {},
+): Promise<NlQueryResult> {
   const start = Date.now();
   const env = serverEnv();
   const trimmed = question.trim();
   if (!trimmed) throw new NlQueryError("empty_question", "Question is empty");
 
   const llm = getLLM();
-  const messages = buildPrompt(trimmed, env.NL_SQL_MAX_ROWS);
+  const messages = buildPrompt(trimmed, env.NL_SQL_MAX_ROWS, options.context);
 
   let llmText: string;
   try {
-    llmText = await llm.complete(messages, { temperature: 0, maxTokens: 600 });
+    llmText = await llm.complete(messages, {
+      temperature: 0,
+      maxTokens: 600,
+      model: options.model,
+    });
   } catch (err) {
     throw new NlQueryError(
       "llm_failed",

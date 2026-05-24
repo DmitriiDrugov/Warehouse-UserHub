@@ -30,7 +30,7 @@ export type ProvisioningContext = {
   roles: { code: string; name: string; description: string | null }[];
 };
 
-const IntentSchema = z.object({
+export const IntentSchema = z.object({
   employeeId: z.string().min(1),
   fullName: z.string().min(1),
   email: z.string().email().nullable().optional(),
