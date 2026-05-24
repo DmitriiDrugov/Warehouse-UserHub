@@ -4,6 +4,7 @@ import { requireOperator } from "@/lib/auth/operator";
 import { classifyIntent } from "@/lib/ai/classify";
 import { proposeProvision } from "@/lib/ai/provisioning";
 import { runNlQuery } from "@/lib/ai/nl-sql";
+import { runNlUpdate, UpdateUnsupportedError } from "@/lib/ai/nl-update";
 import { z } from "zod";
 
 // ─── Types returned to the chat interface ────────────────────────────────────
@@ -22,6 +23,13 @@ export type ProposalResult = {
   explanation: string;
 };
 
+export type UpdateResult = {
+  type: "update";
+  operation: string;
+  affected: Array<{ employeeId: string; fullName: string }>;
+  summary: string;
+};
+
 export type UnsupportedResult = {
   type: "unsupported";
   message: string;
@@ -32,7 +40,7 @@ export type ErrorResult = {
   message: string;
 };
 
-export type ChatResult = QueryResult | ProposalResult | UnsupportedResult | ErrorResult;
+export type ChatResult = QueryResult | ProposalResult | UpdateResult | UnsupportedResult | ErrorResult;
 
 // ─── Text chat action ─────────────────────────────────────────────────────────
 
@@ -77,6 +85,26 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
       return {
         type: "error",
         message: `Query failed: ${err instanceof Error ? err.message : String(err)}`,
+      };
+    }
+  }
+
+  if (intent === "update") {
+    try {
+      const result = await runNlUpdate(text, model);
+      return {
+        type: "update",
+        operation: result.operation,
+        affected: result.affected,
+        summary: result.summary,
+      };
+    } catch (err) {
+      if (err instanceof UpdateUnsupportedError) {
+        return { type: "unsupported", message: err.message };
+      }
+      return {
+        type: "error",
+        message: `Update failed: ${err instanceof Error ? err.message : String(err)}`,
       };
     }
   }

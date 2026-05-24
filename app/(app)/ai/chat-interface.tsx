@@ -285,6 +285,27 @@ function ResultRenderer({ result }: { result: ChatResult }) {
     );
   }
 
+  if (result.type === "update") {
+    return (
+      <div className="bg-status-success/5 border border-status-success/30 rounded-xl p-5 space-y-3 max-w-lg">
+        <div className="flex items-center gap-2">
+          <Icon name="check_circle" size={20} className="text-status-success" fill />
+          <span className="font-title text-title text-on-surface">{result.operation}</span>
+        </div>
+        <p className="font-body-sm text-body-sm text-on-surface-variant">{result.summary}</p>
+        <div className="space-y-1 pt-1">
+          {result.affected.map((w) => (
+            <div key={w.employeeId} className="flex items-center gap-2 text-[12px] text-on-surface-variant">
+              <Icon name="person" size={14} className="shrink-0" />
+              <span>{w.fullName}</span>
+              <span className="text-outline font-data-mono">{w.employeeId}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   if (result.type === "unsupported") {
     return (
       <div className="bg-status-warning/5 border border-status-warning/30 rounded-xl p-5 max-w-lg flex gap-4">

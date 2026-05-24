@@ -5,14 +5,20 @@
 
 import { getLLM } from "../llm";
 
-export type IntentType = "query" | "provision" | "unsupported";
+export type IntentType = "query" | "provision" | "update" | "unsupported";
 
-const VALID_INTENTS = new Set<IntentType>(["query", "provision", "unsupported"]);
+const VALID_INTENTS = new Set<IntentType>([
+  "query",
+  "provision",
+  "update",
+  "unsupported",
+]);
 
 const SYSTEM_PROMPT = `You are classifying a warehouse admin request into exactly one of:
 - "query"       — user wants to look up, list, search, or export data
 - "provision"   — user wants to create a new warehouse worker
-- "unsupported" — anything else (edit, delete, bulk operations, off-topic)
+- "update"      — user wants to assign or record a certificate for existing worker(s)
+- "unsupported" — anything else (bulk delete, role changes, access revocation, off-topic)
 
 Respond with one lowercase word only. No punctuation. No explanation.`;
 
