@@ -73,6 +73,7 @@ export async function getSystemOperator(
 /**
  * After a provision proposal is approved and the worker is created,
  * link any staged documents (uploaded during AI chat) to the new worker.
+ * Clears proposalId so documents are no longer considered "staged".
  * Called inside the approveProposal transaction.
  */
 export async function linkStagedDocuments(
@@ -80,34 +81,53 @@ export async function linkStagedDocuments(
   proposalId: string,
   workerId: string,
 ): Promise<void> {
+  // Set workerId AND clear proposalId — schema contract: proposalId is only
+  // set while the document is staged; once linked it must be null.
   await tx
     .update(workerDocuments)
-    .set({ workerId })
+    .set({ workerId, proposalId: null })
     .where(eq(workerDocuments.proposalId, proposalId));
 }
 
 /**
  * When a provision proposal is rejected, delete any staged documents
  * (both the DB rows and the Storage objects).
- * Called inside rejectProposal.
+ * Called inside rejectProposal BEFORE the transaction commits.
+ *
+ * Note on two-phase commit: storage deletion fires inside the open Postgres
+ * transaction. If the transaction subsequently rolls back (unlikely — only
+ * the DB DELETE can still fail), storage files will be gone but DB rows will
+ * remain. This orphan window is accepted as the proposal would revert to
+ * pending and the documents would be inaccessible anyway.
+ * Storage deletions are best-effort — a storage failure never aborts the tx.
  */
 export async function deleteStagedDocuments(
   tx: DbTx,
   proposalId: string,
 ): Promise<void> {
   const rows = await tx
-    .select({ id: workerDocuments.id, storagePath: workerDocuments.storagePath })
+    .select({ storagePath: workerDocuments.storagePath })
     .from(workerDocuments)
     .where(eq(workerDocuments.proposalId, proposalId));
 
-  // Delete storage files (best-effort — don't fail the transaction)
-  await Promise.allSettled(rows.map((r) => deleteWorkerDocument(r.storagePath)));
+  if (rows.length === 0) return;
 
-  if (rows.length > 0) {
-    await tx
-      .delete(workerDocuments)
-      .where(eq(workerDocuments.proposalId, proposalId));
+  // Best-effort storage cleanup — log failures but don't abort the transaction.
+  const results = await Promise.allSettled(
+    rows.map((r) => deleteWorkerDocument(r.storagePath)),
+  );
+  for (const [i, result] of results.entries()) {
+    if (result.status === "rejected") {
+      console.error(
+        `[deleteStagedDocuments] failed to delete storage object ${rows[i]?.storagePath}:`,
+        result.reason,
+      );
+    }
   }
+
+  await tx
+    .delete(workerDocuments)
+    .where(eq(workerDocuments.proposalId, proposalId));
 }
 
 export type CreateProposalInput<T extends ProposalType = ProposalType> = {
