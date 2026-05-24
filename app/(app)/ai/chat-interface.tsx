@@ -5,11 +5,11 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useSelectedModel } from "@/components/ui/model-selector";
 import type { ChatResult } from "./actions";
-import { chatAction, uploadDocAction } from "./actions";
+import { chatAction } from "./actions";
 
 // ─── Message types ────────────────────────────────────────────────────────────
 
-type UserMessage = { id: string; role: "user"; text: string; fileName?: string };
+type UserMessage = { id: string; role: "user"; text: string };
 type AssistantMessage = { id: string; role: "assistant"; result: ChatResult };
 type ChatMessage = UserMessage | AssistantMessage;
 
@@ -26,11 +26,9 @@ const SUGGESTIONS = [
 export function ChatInterface() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasText, setHasText] = useState(false);
-  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [selectedModel] = useSelectedModel();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -49,7 +47,6 @@ export function ChatInterface() {
       textareaRef.current.style.height = "auto";
     }
     setHasText(false);
-    setPendingFile(null);
   }
 
   function handleStop() {
@@ -60,43 +57,6 @@ export function ChatInterface() {
 
   function handleSend() {
     const controller = new AbortController();
-
-    if (pendingFile) {
-      const file = pendingFile;
-      const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text: `📄 ${file.name}`, fileName: file.name };
-      setMessages((prev) => [...prev, userMsg]);
-      clearInput();
-      scrollToBottom();
-      abortRef.current = controller;
-      setIsPending(true);
-      void (async () => {
-        try {
-          const fd = new FormData();
-          fd.set("file", file);
-          fd.set("model", selectedModel);
-          const result = await uploadDocAction(fd);
-          if (!controller.signal.aborted) {
-            setMessages((prev) => [...prev, { id: crypto.randomUUID(), role: "assistant", result }]);
-          }
-        } catch (err) {
-          if (!controller.signal.aborted) {
-            setMessages((prev) => [...prev, {
-              id: crypto.randomUUID(),
-              role: "assistant",
-              result: { type: "error", message: err instanceof Error ? err.message : String(err) },
-            }]);
-          }
-        } finally {
-          if (abortRef.current === controller) {
-            abortRef.current = null;
-            setIsPending(false);
-          }
-          scrollToBottom();
-        }
-      })();
-      return;
-    }
-
     const text = textareaRef.current?.value ?? "";
     if (!text.trim()) return;
     const userMsg: UserMessage = { id: crypto.randomUUID(), role: "user", text };
@@ -164,21 +124,6 @@ export function ChatInterface() {
           <div className="bg-surface-container-lowest border border-border-subtle rounded-xl shadow-lg p-2 focus-within:ring-2 focus-within:ring-proposal-violet/20 focus-within:border-proposal-violet transition-all">
             <div className="flex items-end gap-2">
               <div className="flex-1 px-3 py-2">
-                {pendingFile && (
-                  <div className="flex items-center gap-1.5 mb-2">
-                    <span className="flex items-center gap-1 bg-surface-container border border-border-subtle rounded-full px-2 py-0.5 text-[12px] text-on-surface max-w-xs">
-                      <Icon name="description" size={14} className="shrink-0 text-proposal-violet" />
-                      <span className="truncate">{pendingFile.name}</span>
-                      <button
-                        type="button"
-                        onClick={() => setPendingFile(null)}
-                        className="ml-0.5 text-on-surface-variant hover:text-status-danger shrink-0"
-                      >
-                        <Icon name="close" size={14} />
-                      </button>
-                    </span>
-                  </div>
-                )}
                 <textarea
                   ref={textareaRef}
                   rows={1}
@@ -195,26 +140,6 @@ export function ChatInterface() {
                 />
               </div>
               <div className="flex items-center gap-2 pb-2 pr-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="application/pdf,image/jpeg,image/png,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) setPendingFile(file);
-                    e.target.value = "";
-                  }}
-                />
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => fileInputRef.current?.click()}
-                  title="Attach document (PDF, JPG, PNG)"
-                  className="p-2 text-on-surface-variant hover:bg-surface-container transition-colors rounded-lg disabled:opacity-50"
-                >
-                  <Icon name="attach_file" size={20} />
-                </button>
                 {isPending ? (
                   <button
                     type="button"
@@ -227,7 +152,7 @@ export function ChatInterface() {
                 ) : (
                   <button
                     type="button"
-                    disabled={!hasText && !pendingFile}
+                    disabled={!hasText}
                     onClick={handleSend}
                     className="bg-proposal-violet text-on-primary w-10 h-10 rounded flex items-center justify-center hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
                   >
@@ -348,12 +273,6 @@ function ResultRenderer({ result }: { result: ChatResult }) {
           </span>
         </div>
         <div className="space-y-2">
-          {result.fromDocument && (
-            <div className="flex items-center gap-1.5 text-[11px] text-on-surface-variant">
-              <Icon name="description" size={14} />
-              Parsed from uploaded document
-            </div>
-          )}
           <p className="font-body-sm text-body-sm text-on-surface">{result.explanation}</p>
           <div className="flex items-center gap-2 text-primary font-label text-label">
             <Icon name="link" size={16} />

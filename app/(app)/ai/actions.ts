@@ -1,17 +1,9 @@
 "use server";
 
-import { basename } from "path";
 import { requireOperator } from "@/lib/auth/operator";
 import { classifyIntent } from "@/lib/ai/classify";
 import { proposeProvision } from "@/lib/ai/provisioning";
-import { extractWorkerDataFromDocument } from "@/lib/ai/parse-document";
 import { runNlQuery } from "@/lib/ai/nl-sql";
-import { dbAdmin } from "@/lib/db/client";
-import { workerDocuments } from "@/lib/db/schema";
-import {
-  deleteWorkerDocument,
-  uploadWorkerDocument,
-} from "@/lib/storage/worker-documents";
 import { z } from "zod";
 
 // ─── Types returned to the chat interface ────────────────────────────────────
@@ -28,7 +20,6 @@ export type ProposalResult = {
   type: "provision";
   proposalId: string;
   explanation: string;
-  fromDocument?: boolean;
 };
 
 export type UnsupportedResult = {
@@ -74,7 +65,6 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
 
   if (intent === "query") {
     try {
-      // Note: runNlQuery does not accept a model override — it uses getLLM() default.
       const result = await runNlQuery(text);
       return {
         type: "query",
@@ -108,105 +98,4 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
       message: `Provisioning failed: ${err instanceof Error ? err.message : String(err)}`,
     };
   }
-}
-
-// ─── Document upload action ───────────────────────────────────────────────────
-
-const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
-
-export async function uploadDocAction(formData: FormData): Promise<ChatResult> {
-  const operator = await requireOperator(["hr", "warehouse_admin"]);
-
-  const file = formData.get("file") as File | null;
-  const model = (formData.get("model") as string | null) ?? "anthropic/claude-sonnet-4.6";
-
-  if (!file || file.size === 0) {
-    return { type: "error", message: "No file provided." };
-  }
-  if (file.size > MAX_FILE_SIZE) {
-    return { type: "error", message: "File too large. Maximum size is 10 MB." };
-  }
-
-  const mimeType = file.type;
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  // 1. Extract worker data from document via Claude
-  let docIntent;
-  try {
-    docIntent = await extractWorkerDataFromDocument(buffer, mimeType, model);
-  } catch (err) {
-    return {
-      type: "error",
-      message: `Could not read document: ${err instanceof Error ? err.message : String(err)}`,
-    };
-  }
-
-  // 2. Create the provisioning proposal using pre-parsed intent (skips LLM call)
-  let provisionResult;
-  try {
-    provisionResult = await proposeProvision(
-      "", // text not used when preParseIntent is provided
-      model,
-      docIntent,
-    );
-  } catch (err) {
-    return {
-      type: "error",
-      message: `Provisioning failed: ${err instanceof Error ? err.message : String(err)}`,
-    };
-  }
-
-  if (!provisionResult.ok) {
-    return { type: "error", message: provisionResult.error };
-  }
-
-  const proposalId = provisionResult.proposalId;
-
-  // Sanitise fileName to prevent path traversal before using in storage/DB
-  const fileName = basename(file.name);
-
-  // 3. Upload file to Supabase Storage staged under the proposal ID
-  let storagePath = "";
-  try {
-    storagePath = await uploadWorkerDocument({
-      scope: "proposals",
-      scopeId: proposalId,
-      documentType: "other",
-      fileName,
-      buffer,
-      mimeType,
-    });
-  } catch (storageErr) {
-    // Don't fail the whole action if storage upload fails — log for observability
-    console.error("[uploadDocAction] storage upload failed:", storageErr);
-  }
-
-  // 4. Insert worker_documents row (staged — workerId is null until approval)
-  if (storagePath) {
-    try {
-      await dbAdmin.insert(workerDocuments).values({
-        workerId: null,
-        proposalId,
-        documentType: "other",
-        fileName,
-        storagePath,
-        fileSizeBytes: file.size,
-        mimeType,
-        uploadedBy: operator.id,
-      });
-    } catch (dbErr) {
-      // DB insert failed — attempt compensating storage delete to avoid orphaned files
-      console.error("[uploadDocAction] DB insert failed, cleaning up storage:", dbErr);
-      deleteWorkerDocument(storagePath).catch((e) =>
-        console.error("[uploadDocAction] compensating storage delete failed:", e),
-      );
-    }
-  }
-
-  return {
-    type: "provision",
-    proposalId,
-    explanation: provisionResult.explanation,
-    fromDocument: true,
-  };
 }
