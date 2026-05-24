@@ -21,11 +21,13 @@ import {
   userChecklists,
   warehouseUsers,
   warehouses,
+  workerDocuments,
 } from "@/lib/db/schema";
 
 import { AccessSection } from "./access-section";
 import { CertificateSection } from "./certificate-section";
 import { ChecklistSection } from "./checklist-section";
+import { DocumentsSection, type DocumentRow } from "./documents-section";
 import { HistorySection } from "./history-section";
 import { OffboardForm, StatusForm } from "./status-forms";
 
@@ -184,6 +186,17 @@ export default async function WarehouseUserDetailPage({ params }: PageProps) {
       .from(certificatesTable)
       .orderBy(certificatesTable.code);
 
+    const docs = await tx
+      .select({
+        id: workerDocuments.id,
+        documentType: workerDocuments.documentType,
+        fileName: workerDocuments.fileName,
+        fileSizeBytes: workerDocuments.fileSizeBytes,
+        createdAt: workerDocuments.createdAt,
+      })
+      .from(workerDocuments)
+      .where(eq(workerDocuments.workerId, id));
+
     return {
       user,
       access,
@@ -193,12 +206,13 @@ export default async function WarehouseUserDetailPage({ params }: PageProps) {
       history,
       permList,
       certCatalog,
+      docs,
     };
   });
 
   if (!data) notFound();
 
-  const { user, access, certs, lists, listItems, history, permList, certCatalog } = data;
+  const { user, access, certs, lists, listItems, history, permList, certCatalog, docs } = data;
   const canMutate =
     operator.operatorRole === "hr" || operator.operatorRole === "warehouse_admin";
 
@@ -257,7 +271,7 @@ export default async function WarehouseUserDetailPage({ params }: PageProps) {
       {/* Tabs nav */}
       <div className="border-b border-border-subtle mb-6">
         <nav className="flex gap-8">
-          {(["Profile", "Access", "Certificates", "Checklist", "History"] as const).map(
+          {(["Profile", "Access", "Certificates", "Checklist", "Documents", "History"] as const).map(
             (tab) => (
               <a
                 key={tab}
@@ -326,6 +340,14 @@ export default async function WarehouseUserDetailPage({ params }: PageProps) {
           canMutate={canMutate}
           lists={lists}
           items={listItems}
+        />
+      </div>
+
+      <div id="documents">
+        <DocumentsSection
+          workerId={user.id}
+          canMutate={canMutate}
+          documents={docs}
         />
       </div>
 
