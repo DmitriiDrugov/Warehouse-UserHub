@@ -47,7 +47,7 @@ export type ChatResult = QueryResult | ProposalResult | UnsupportedResult | Erro
 
 const ChatInputSchema = z.object({
   text: z.string().min(1).max(2000),
-  model: z.string().min(1).default("claude-sonnet-4-6"),
+  model: z.string().min(1).default("anthropic/claude-sonnet-4.6"),
 });
 
 export async function chatAction(formData: FormData): Promise<ChatResult> {
@@ -118,7 +118,7 @@ export async function uploadDocAction(formData: FormData): Promise<ChatResult> {
   const operator = await requireOperator(["hr", "warehouse_admin"]);
 
   const file = formData.get("file") as File | null;
-  const model = (formData.get("model") as string | null) ?? "claude-sonnet-4-6";
+  const model = (formData.get("model") as string | null) ?? "anthropic/claude-sonnet-4.6";
 
   if (!file || file.size === 0) {
     return { type: "error", message: "No file provided." };

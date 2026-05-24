@@ -4,30 +4,24 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Icon } from "./icon";
 
 export type ModelId =
-  | "claude-haiku-4-5-20251001"
-  | "claude-sonnet-4-6"
-  | "claude-opus-4-7";
+  | "anthropic/claude-3-haiku"
+  | "anthropic/claude-sonnet-4.6";
 
 const MODELS: { id: ModelId; label: string; description: string }[] = [
   {
-    id: "claude-haiku-4-5-20251001",
+    id: "anthropic/claude-3-haiku",
     label: "Claude Haiku",
     description: "Fastest · lower cost",
   },
   {
-    id: "claude-sonnet-4-6",
+    id: "anthropic/claude-sonnet-4.6",
     label: "Claude Sonnet",
     description: "Balanced · default",
-  },
-  {
-    id: "claude-opus-4-7",
-    label: "Claude Opus",
-    description: "Most capable · slower",
   },
 ];
 
 const STORAGE_KEY = "ai_model_preference";
-export const DEFAULT_MODEL: ModelId = "claude-sonnet-4-6";
+export const DEFAULT_MODEL: ModelId = "anthropic/claude-sonnet-4.6";
 
 export function useSelectedModel(): [ModelId, (m: ModelId) => void] {
   const [model, setModelState] = useState<ModelId>(DEFAULT_MODEL);
