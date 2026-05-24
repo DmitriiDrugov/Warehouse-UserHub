@@ -76,7 +76,7 @@ export function ChatInterface() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem-1px)] -mt-6 -mx-gutter">
+    <div className="relative flex flex-col h-[calc(100vh-3.5rem-1px)] -mt-6 -mx-gutter">
       {/* History zone */}
       <div className="flex-1 overflow-y-auto px-gutter pt-8 pb-44 max-w-[1200px] mx-auto w-full">
         {messages.length === 0 && <EmptyState />}
