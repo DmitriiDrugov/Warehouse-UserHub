@@ -1,5 +1,6 @@
 "use server";
 
+import { basename } from "path";
 import { requireOperator } from "@/lib/auth/operator";
 import { classifyIntent } from "@/lib/ai/classify";
 import { proposeProvision } from "@/lib/ai/provisioning";
@@ -7,7 +8,10 @@ import { extractWorkerDataFromDocument } from "@/lib/ai/parse-document";
 import { runNlQuery } from "@/lib/ai/nl-sql";
 import { dbAdmin } from "@/lib/db/client";
 import { workerDocuments } from "@/lib/db/schema";
-import { uploadWorkerDocument } from "@/lib/storage/worker-documents";
+import {
+  deleteWorkerDocument,
+  uploadWorkerDocument,
+} from "@/lib/storage/worker-documents";
 import { z } from "zod";
 
 // ─── Types returned to the chat interface ────────────────────────────────────
@@ -138,17 +142,28 @@ export async function uploadDocAction(formData: FormData): Promise<ChatResult> {
   }
 
   // 2. Create the provisioning proposal using pre-parsed intent (skips LLM call)
-  const provisionResult = await proposeProvision(
-    "", // text not used when preParseIntent is provided
-    model,
-    docIntent,
-  );
+  let provisionResult;
+  try {
+    provisionResult = await proposeProvision(
+      "", // text not used when preParseIntent is provided
+      model,
+      docIntent,
+    );
+  } catch (err) {
+    return {
+      type: "error",
+      message: `Provisioning failed: ${err instanceof Error ? err.message : String(err)}`,
+    };
+  }
 
   if (!provisionResult.ok) {
     return { type: "error", message: provisionResult.error };
   }
 
   const proposalId = provisionResult.proposalId;
+
+  // Sanitise fileName to prevent path traversal before using in storage/DB
+  const fileName = basename(file.name);
 
   // 3. Upload file to Supabase Storage staged under the proposal ID
   let storagePath = "";
@@ -157,7 +172,7 @@ export async function uploadDocAction(formData: FormData): Promise<ChatResult> {
       scope: "proposals",
       scopeId: proposalId,
       documentType: "other",
-      fileName: file.name,
+      fileName,
       buffer,
       mimeType,
     });
@@ -168,16 +183,24 @@ export async function uploadDocAction(formData: FormData): Promise<ChatResult> {
 
   // 4. Insert worker_documents row (staged — workerId is null until approval)
   if (storagePath) {
-    await dbAdmin.insert(workerDocuments).values({
-      workerId: null,
-      proposalId,
-      documentType: "other",
-      fileName: file.name,
-      storagePath,
-      fileSizeBytes: file.size,
-      mimeType,
-      uploadedBy: operator.id,
-    });
+    try {
+      await dbAdmin.insert(workerDocuments).values({
+        workerId: null,
+        proposalId,
+        documentType: "other",
+        fileName,
+        storagePath,
+        fileSizeBytes: file.size,
+        mimeType,
+        uploadedBy: operator.id,
+      });
+    } catch (dbErr) {
+      // DB insert failed — attempt compensating storage delete to avoid orphaned files
+      console.error("[uploadDocAction] DB insert failed, cleaning up storage:", dbErr);
+      deleteWorkerDocument(storagePath).catch((e) =>
+        console.error("[uploadDocAction] compensating storage delete failed:", e),
+      );
+    }
   }
 
   return {

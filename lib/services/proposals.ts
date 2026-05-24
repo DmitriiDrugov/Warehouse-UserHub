@@ -513,6 +513,11 @@ export async function expireProposal(
       },
     );
 
+    // Clean up staged documents uploaded via AI chat for this proposal
+    if (before.type === "provision") {
+      await deleteStagedDocuments(tx, proposalId);
+    }
+
     return updated;
   });
 }

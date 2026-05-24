@@ -1,7 +1,7 @@
 "use server";
 
 import { basename } from "path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requireOperator } from "@/lib/auth/operator";
 import { dbAdmin } from "@/lib/db/client";
@@ -99,7 +99,12 @@ export async function deleteWorkerDocumentAction(
   const [doc] = await dbAdmin
     .select({ id: workerDocuments.id, storagePath: workerDocuments.storagePath })
     .from(workerDocuments)
-    .where(eq(workerDocuments.id, documentId))
+    .where(
+      and(
+        eq(workerDocuments.id, documentId),
+        eq(workerDocuments.workerId, workerId), // ownership check — prevents cross-worker deletion
+      ),
+    )
     .limit(1);
 
   if (!doc) return { ok: false, error: "Document not found." };
@@ -120,7 +125,7 @@ export async function deleteWorkerDocumentAction(
 export async function getDocumentSignedUrlAction(
   documentId: string,
 ): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
-  await requireOperator();
+  await requireOperator(["hr", "warehouse_admin"]);
 
   const idResult = IdSchema.safeParse(documentId);
   if (!idResult.success) return { ok: false, error: "Invalid document ID." };
