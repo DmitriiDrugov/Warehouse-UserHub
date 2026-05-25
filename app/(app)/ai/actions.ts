@@ -95,7 +95,7 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
 
   if (intent === "access_explain") {
     try {
-      const result = await explainAccessQuestion(text, operator.id);
+      const result = await explainAccessQuestion(text, operator.id, model);
       return await persistChatResult(operator.id, text, result);
     } catch (err) {
       return await persistChatResult(operator.id, text, {

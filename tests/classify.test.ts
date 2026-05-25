@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/db/client", () => ({ dbAdmin: {}, dbReadonly: {} }));
 
@@ -10,9 +10,23 @@ vi.mock("@/lib/llm", () => ({
 import { classifyIntent } from "@/lib/ai/classify";
 
 describe("classifyIntent", () => {
+  beforeEach(() => {
+    mockComplete.mockReset();
+  });
+
   it("detects access explanation questions before calling the LLM", async () => {
-    const result = await classifyIntent("Почему у Alina Lange нет доступа?");
+    const result = await classifyIntent(
+      "\u041f\u043e\u0447\u0435\u043c\u0443 \u0443 Alina Lange \u043d\u0435\u0442 \u0434\u043e\u0441\u0442\u0443\u043f\u0430?",
+    );
     expect(result).toBe("access_explain");
+    expect(mockComplete).not.toHaveBeenCalled();
+  });
+
+  it("detects flexible access diagnostic questions", async () => {
+    await expect(classifyIntent("What blocks EMP-022 from WMS dispatch?")).resolves.toBe("access_explain");
+    await expect(
+      classifyIntent("\u041a\u0430\u043a\u0438\u0445 \u043f\u0440\u0430\u0432 \u043d\u0435 \u0445\u0432\u0430\u0442\u0430\u0435\u0442 Alina Lange?"),
+    ).resolves.toBe("access_explain");
     expect(mockComplete).not.toHaveBeenCalled();
   });
 
@@ -20,6 +34,13 @@ describe("classifyIntent", () => {
     mockComplete.mockResolvedValueOnce("query");
     const result = await classifyIntent("Show all pickers at WH-A");
     expect(result).toBe("query");
+  });
+
+  it("does not hijack aggregate access lookups", async () => {
+    mockComplete.mockResolvedValueOnce("query");
+    const result = await classifyIntent("Who has WMS access?");
+    expect(result).toBe("query");
+    expect(mockComplete).toHaveBeenCalled();
   });
 
   it("returns 'provision' for creation requests", async () => {
