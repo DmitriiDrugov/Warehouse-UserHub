@@ -10,6 +10,12 @@ vi.mock("@/lib/llm", () => ({
 import { classifyIntent } from "@/lib/ai/classify";
 
 describe("classifyIntent", () => {
+  it("detects access explanation questions before calling the LLM", async () => {
+    const result = await classifyIntent("Почему у Alina Lange нет доступа?");
+    expect(result).toBe("access_explain");
+    expect(mockComplete).not.toHaveBeenCalled();
+  });
+
   it("returns 'query' for lookup requests", async () => {
     mockComplete.mockResolvedValueOnce("query");
     const result = await classifyIntent("Show all pickers at WH-A");

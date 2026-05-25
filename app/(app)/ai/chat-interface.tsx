@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Icon } from "@/components/ui/icon";
 import { useSelectedModel } from "@/components/ui/model-selector";
 import type {
+  AccessExplanationResult,
+  ChatAttachment,
   ChatMessage,
   ChatResult,
   QueryResult,
@@ -17,7 +19,7 @@ import { chatAction, clearChatHistoryAction, uploadDocumentProposalAction } from
 
 const SUGGESTIONS = [
   "Who is on shift in WH-B?",
-  "Generate audit for Zone A",
+  "Why does Alina Lange not have access?",
   "Show open workforce gaps",
 ];
 
@@ -33,6 +35,7 @@ export function ChatInterface({ initialMessages = [] }: { initialMessages?: Chat
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const attachmentUrlsRef = useRef<Set<string>>(new Set());
   const canSend = hasText || selectedFile !== null;
 
   // Restore focus to the input when the pending transition finishes.
@@ -40,8 +43,21 @@ export function ChatInterface({ initialMessages = [] }: { initialMessages?: Chat
     if (!isPending) textareaRef.current?.focus();
   }, [isPending]);
 
+  useEffect(() => {
+    return () => {
+      revokeAttachmentUrls();
+    };
+  }, []);
+
   function scrollToBottom() {
     setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 50);
+  }
+
+  function revokeAttachmentUrls() {
+    for (const url of attachmentUrlsRef.current) {
+      URL.revokeObjectURL(url);
+    }
+    attachmentUrlsRef.current.clear();
   }
 
   function clearInput() {
@@ -82,6 +98,8 @@ export function ChatInterface({ initialMessages = [] }: { initialMessages?: Chat
           parts.push(`Assistant [update]: ${r.summary}`);
         } else if (r.type === "provision") {
           parts.push(`Assistant [provision]: ${r.explanation}`);
+        } else if (r.type === "access_explain") {
+          parts.push(`Assistant [access explanation]: ${r.summary}\n${r.reasons.join("\n")}`);
         } else if (r.type === "unsupported" || r.type === "error") {
           parts.push(`Assistant: ${r.message}`);
         }
@@ -103,13 +121,21 @@ export function ChatInterface({ initialMessages = [] }: { initialMessages?: Chat
     const file = options.fileOverride === undefined ? selectedFile : options.fileOverride;
     if (!trimmedText && !file) return;
 
-    const userText = file
-      ? trimmedText
-        ? `${trimmedText}\n\nAttached: ${file.name}`
-        : `Uploaded document: ${file.name}`
-      : text;
+    let attachment: ChatAttachment | undefined;
+    if (file) {
+      const previewUrl = URL.createObjectURL(file);
+      attachmentUrlsRef.current.add(previewUrl);
+      attachment = {
+        name: file.name || "document",
+        size: file.size,
+        mimeType: file.type || undefined,
+        previewUrl,
+      };
+    }
 
-    const userMsg: UserChatMessage = { id: crypto.randomUUID(), role: "user", text: userText };
+    const userText = file ? trimmedText || "Uploaded document" : text;
+
+    const userMsg: UserChatMessage = { id: crypto.randomUUID(), role: "user", text: userText, attachment };
     setMessages((prev) => [...prev, userMsg]);
     clearInput();
     scrollToBottom();
@@ -282,7 +308,10 @@ export function ChatInterface({ initialMessages = [] }: { initialMessages?: Chat
                   onClick={() => {
                     void (async () => {
                       const result = await clearChatHistoryAction();
-                      if (result.ok) setMessages([]);
+                      if (result.ok) {
+                        setMessages([]);
+                        revokeAttachmentUrls();
+                      }
                     })();
                   }}
                   title="Clear chat history"
@@ -317,10 +346,15 @@ export function ChatInterface({ initialMessages = [] }: { initialMessages?: Chat
 
 function MessagePair({ message }: { message: ChatMessage }) {
   if (message.role === "user") {
+    const hasText = message.text.trim().length > 0;
+
     return (
       <div className="flex justify-end">
-        <div className="bg-surface-container-highest/50 px-5 py-3 rounded-xl max-w-2xl border border-border-subtle">
-          <p className="text-body-lg font-body-lg">{message.text}</p>
+        <div className="bg-surface-container-highest/50 px-5 py-3 rounded-xl max-w-2xl border border-border-subtle space-y-3 min-w-0">
+          {hasText ? (
+            <p className="text-body-lg font-body-lg whitespace-pre-wrap break-words">{message.text}</p>
+          ) : null}
+          {message.attachment ? <MessageFilePreview attachment={message.attachment} /> : null}
         </div>
       </div>
     );
@@ -343,6 +377,58 @@ function MessagePair({ message }: { message: ChatMessage }) {
         <ResultRenderer result={result} />
       </div>
     </div>
+  );
+}
+
+function MessageFilePreview({ attachment }: { attachment: ChatAttachment }) {
+  const fileKind = getFileKind(attachment);
+  const details = [fileKind, attachment.size !== undefined ? formatFileSize(attachment.size) : null]
+    .filter(Boolean)
+    .join(" - ");
+  const isImage = attachment.mimeType?.startsWith("image/") ?? false;
+  const content = (
+    <>
+      {isImage && attachment.previewUrl ? (
+        <img
+          src={attachment.previewUrl}
+          alt=""
+          className="h-10 w-10 shrink-0 rounded border border-border-subtle object-cover bg-surface-container-lowest"
+        />
+      ) : (
+        <span className="h-10 w-10 shrink-0 rounded border border-border-subtle bg-surface-container-lowest flex items-center justify-center text-primary">
+          <Icon name={fileKind === "PDF" ? "picture_as_pdf" : "description"} size={24} />
+        </span>
+      )}
+      <span className="min-w-0 flex-1">
+        <span className="block truncate font-label text-[12px] text-on-surface">{attachment.name}</span>
+        {details ? (
+          <span className="block truncate font-label text-[11px] text-on-surface-variant">{details}</span>
+        ) : null}
+      </span>
+      {attachment.previewUrl ? (
+        <Icon name="open_in_new" size={16} className="shrink-0 text-on-surface-variant" />
+      ) : null}
+    </>
+  );
+
+  if (!attachment.previewUrl) {
+    return (
+      <div className="flex max-w-full items-center gap-3 rounded-lg border border-border-subtle bg-surface-container-lowest/70 px-3 py-2">
+        {content}
+      </div>
+    );
+  }
+
+  return (
+    <a
+      href={attachment.previewUrl}
+      target="_blank"
+      rel="noreferrer"
+      title={`Open ${attachment.name}`}
+      className="flex max-w-full items-center gap-3 rounded-lg border border-border-subtle bg-surface-container-lowest/70 px-3 py-2 text-left hover:border-primary/40 hover:bg-surface-container-lowest focus:outline-none focus:ring-2 focus:ring-proposal-violet/25 transition-colors"
+    >
+      {content}
+    </a>
   );
 }
 
@@ -519,6 +605,10 @@ function ResultRenderer({ result }: { result: ChatResult }) {
     );
   }
 
+  if (result.type === "access_explain") {
+    return <AccessExplanationCard result={result} />;
+  }
+
   if (result.type === "unsupported") {
     return (
       <div className="bg-status-warning/5 border border-status-warning/30 rounded-xl p-5 max-w-lg flex gap-4">
@@ -536,6 +626,144 @@ function ResultRenderer({ result }: { result: ChatResult }) {
     <div className="flex items-start gap-2 text-status-danger font-body-sm text-body-sm">
       <Icon name="error" size={18} />
       {result.message}
+    </div>
+  );
+}
+
+function AccessExplanationCard({ result }: { result: AccessExplanationResult }) {
+  const hasWorker = result.worker !== undefined;
+  const accessPreview = result.activeAccess.slice(0, 6);
+  const rolePreview = result.expectedRoleAccess.slice(0, 6);
+  const certPreview = result.certificates.slice(0, 5);
+
+  return (
+    <div className="bg-surface-container-lowest border border-border-subtle rounded-xl p-5 space-y-4 max-w-3xl shadow-sm">
+      <div className="flex items-start justify-between gap-4">
+        <div className="space-y-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <Icon name="rule" size={20} className="text-primary" />
+            <span className="font-title text-title text-on-surface">Access diagnosis</span>
+          </div>
+          <p className="font-body-sm text-body-sm text-on-surface-variant">{result.summary}</p>
+        </div>
+        {result.targetAccess ? (
+          <span className="shrink-0 bg-surface-container px-2 py-1 rounded font-label text-[11px] text-on-surface-variant">
+            {result.targetAccess}
+          </span>
+        ) : null}
+      </div>
+
+      {hasWorker ? (
+        <div className="flex flex-wrap items-center gap-2 font-label text-[12px] text-on-surface-variant">
+          <span className="bg-surface-container px-2 py-1 rounded font-data-mono text-data-mono">
+            {result.worker!.employeeId}
+          </span>
+          <span>{result.worker!.fullName}</span>
+          <span className="text-outline">/</span>
+          <span>{result.worker!.roleName}</span>
+          <span className="text-outline">/</span>
+          <span>{result.worker!.warehouseCode}</span>
+          <span className="text-outline">/</span>
+          <span className={statusClassName(result.worker!.status)}>{result.worker!.status}</span>
+          <Link href={`/warehouse-users/${result.worker!.id}`} className="text-primary hover:underline ml-1">
+            Open worker
+          </Link>
+        </div>
+      ) : null}
+
+      {result.reasons.length > 0 ? (
+        <div className="space-y-2">
+          {result.reasons.map((reason, index) => (
+            <div key={`${index}-${reason}`} className="flex gap-2 font-body-sm text-body-sm text-on-surface">
+              <Icon name="chevron_right" size={16} className="text-primary shrink-0 mt-0.5" />
+              <span>{reason}</span>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {result.candidates && result.candidates.length > 0 ? (
+        <div className="border-t border-border-subtle pt-3">
+          <div className="grid gap-2">
+            {result.candidates.map((candidate) => (
+              <div key={candidate.employeeId} className="flex flex-wrap items-center gap-2 font-label text-[12px] text-on-surface-variant">
+                <span className="font-data-mono text-data-mono text-on-surface">{candidate.employeeId}</span>
+                <span>{candidate.fullName}</span>
+                <span className="text-outline">/</span>
+                <span>{candidate.roleName}</span>
+                <span className="text-outline">/</span>
+                <span>{candidate.warehouseCode}</span>
+                <span className={statusClassName(candidate.status)}>{candidate.status}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {hasWorker ? (
+        <div className="grid md:grid-cols-3 gap-4 border-t border-border-subtle pt-4">
+          <AccessMiniSection
+            title="Active grants"
+            empty="No active grants"
+            items={accessPreview.map((a) => ({
+              key: `${a.systemCode}.${a.permissionCode}`,
+              primary: `${a.systemCode}.${a.permissionCode}`,
+              secondary: a.permissionName,
+            }))}
+          />
+          <AccessMiniSection
+            title="Role template"
+            empty="No template grants"
+            items={rolePreview.map((a) => ({
+              key: `${a.systemCode}.${a.permissionCode}`,
+              primary: `${a.systemCode}.${a.permissionCode}`,
+              secondary: a.permissionName,
+            }))}
+          />
+          <AccessMiniSection
+            title="Certificates"
+            empty="No certificates"
+            items={certPreview.map((c) => ({
+              key: c.certificateCode,
+              primary: c.certificateCode,
+              secondary: `${c.status}${c.expiresAt ? ` - expires ${formatIsoDate(c.expiresAt)}` : ""}`,
+              danger: c.status !== "valid" || c.isExpired,
+            }))}
+          />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AccessMiniSection({
+  title,
+  empty,
+  items,
+}: {
+  title: string;
+  empty: string;
+  items: Array<{ key: string; primary: string; secondary: string; danger?: boolean }>;
+}) {
+  return (
+    <div className="space-y-2 min-w-0">
+      <p className="font-label text-[11px] uppercase text-on-surface-variant">{title}</p>
+      {items.length === 0 ? (
+        <p className="font-body-sm text-body-sm text-on-surface-variant">{empty}</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item) => (
+            <div key={item.key} className="min-w-0">
+              <div className={item.danger ? "font-data-mono text-data-mono text-status-warning truncate" : "font-data-mono text-data-mono text-on-surface truncate"}>
+                {item.primary}
+              </div>
+              <div className="font-body-sm text-[12px] text-on-surface-variant truncate">
+                {item.secondary}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -577,6 +805,32 @@ function formatCell(v: unknown): string {
   if (v === null || v === undefined) return "—";
   if (typeof v === "object") return JSON.stringify(v);
   return String(v);
+}
+
+function formatIsoDate(value: string): string {
+  return new Date(value).toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function statusClassName(status: string): string {
+  if (status === "active" || status === "valid") return "text-status-success";
+  if (status === "pending") return "text-status-warning";
+  if (status === "suspended" || status === "offboarded" || status === "expired" || status === "revoked") {
+    return "text-status-danger";
+  }
+  return "text-on-surface-variant";
+}
+
+function getFileKind(attachment: ChatAttachment): string {
+  if (attachment.mimeType === "application/pdf") return "PDF";
+  if (attachment.mimeType?.startsWith("image/")) return "Image";
+
+  const extension = attachment.name.split(".").pop()?.trim();
+  if (extension && extension !== attachment.name) return extension.toUpperCase();
+  return "File";
 }
 
 function formatFileSize(bytes: number): string {
