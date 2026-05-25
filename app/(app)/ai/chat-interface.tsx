@@ -19,7 +19,7 @@ import { chatAction, clearChatHistoryAction, uploadDocumentProposalAction } from
 
 const SUGGESTIONS = [
   "Who is on shift in WH-B?",
-  "Why does Alina Lange not have access?",
+  "What blocks Alina Lange from WMS?",
   "Show open workforce gaps",
 ];
 
@@ -795,7 +795,7 @@ function EmptyState() {
       </div>
       <h2 className="font-title text-title text-on-surface mb-1">AI Assistant</h2>
       <p className="font-body-sm text-body-sm max-w-sm">
-        Ask about workforce data, create new workers, or upload an employment document to provision automatically.
+        Ask about workforce data, diagnose access issues, or upload an employment document to provision automatically.
       </p>
     </div>
   );

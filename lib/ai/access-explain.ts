@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ilike, or } from "drizzle-orm";
+import { z } from "zod";
 
 import { type DbTx, withOperator } from "../db/client";
 import {
@@ -14,10 +15,13 @@ import {
   warehouses,
 } from "../db/schema";
 import { serverEnv } from "../env";
+import { getLLM } from "../llm";
 import { getRulesConfig } from "../rules/config";
 import { runAllRules } from "../rules/rules";
 import type { Finding, WarehouseUserContext } from "../rules/types";
 import type { AccessExplanationResult } from "./chat-types";
+
+type AccessQuestionKind = "why_missing" | "status" | "missing" | "blockers";
 
 type AccessTarget = {
   systemCode: string | null;
@@ -28,6 +32,7 @@ type AccessTarget = {
 export type ParsedAccessQuestion = {
   workerName: string | null;
   target: AccessTarget | null;
+  kind: AccessQuestionKind;
 };
 
 type WorkerRow = {
@@ -81,11 +86,44 @@ type PendingProposalRow = {
   explanation: string;
 };
 
+const LlmAccessQuestionSchema = z.object({
+  kind: z.enum([
+    "why_missing",
+    "status",
+    "missing",
+    "blockers",
+    "not_access_diagnosis",
+  ]),
+  workerName: z.string().min(1).nullable(),
+  target: z
+    .object({
+      systemCode: z.enum(["wms", "badge", "email", "shared_account"]).nullable(),
+      permissionCode: z
+        .enum([
+          "view_only",
+          "receive_inventory",
+          "dispatch_order",
+          "approve_adjustment",
+          "entry",
+          "admin",
+          "create_account",
+          "view_directory",
+          "warehouse_ops",
+        ])
+        .nullable(),
+      label: z.string().min(1).nullable().optional(),
+    })
+    .nullable(),
+});
+
+type LlmAccessQuestion = z.infer<typeof LlmAccessQuestionSchema>;
+
 export async function explainAccessQuestion(
   text: string,
   operatorId: string,
+  model?: string,
 ): Promise<AccessExplanationResult> {
-  const parsed = parseAccessQuestion(text);
+  const parsed = await parseAccessQuestionIntent(text, model);
 
   if (!parsed.workerName) {
     return emptyAccessResult({
@@ -94,7 +132,7 @@ export async function explainAccessQuestion(
       target: parsed.target,
       summary: "I need a worker name to explain access.",
       reasons: [
-        'Try asking: "Why does Alina Lange not have WMS access?"',
+        'Try asking: "Why does Alina Lange not have WMS access?" or "What access is missing for EMP-022?"',
       ],
     });
   }
@@ -142,6 +180,7 @@ export async function explainAccessQuestion(
     return buildAccessExplanation({
       question: text,
       target: parsed.target,
+      kind: parsed.kind,
       worker,
       access,
       roleAccess,
@@ -154,32 +193,103 @@ export async function explainAccessQuestion(
 
 export function parseAccessQuestion(text: string): ParsedAccessQuestion {
   const target = inferTarget(text);
+  const kind = inferQuestionKind(text);
   const trimmed = text.trim();
   const patterns: RegExp[] = [
-    /почему\s+у\s+(.+?)\s+(?:нет|не|отсутствует)\s+доступ/iu,
-    /у\s+(.+?)\s+(?:нет|не|отсутствует)\s+доступ/iu,
+    /\u043f\u043e\u0447\u0435\u043c\u0443\s+\u0443\s+(.+?)\s+(?:\u043d\u0435\u0442|\u043d\u0435|\u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442)\s+\u0434\u043e\u0441\u0442\u0443\u043f/iu,
+    /\u0443\s+(.+?)\s+(?:\u043d\u0435\u0442|\u043d\u0435|\u043e\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442)\s+\u0434\u043e\u0441\u0442\u0443\u043f/iu,
+    /(?:\u0447\u0442\u043e|\u043a\u0430\u043a\u0438\u0435).{0,40}(?:\u0431\u043b\u043e\u043a\u0438\u0440\u0443\u0435\u0442|\u043c\u0435\u0448\u0430\u0435\u0442|\u043d\u0435\s+\u0445\u0432\u0430\u0442\u0430\u0435\u0442).{0,40}(?:\u0434\u043e\u0441\u0442\u0443\u043f|\u043f\u0440\u0430\u0432).{0,20}(?:\u0443|\u0434\u043b\u044f)\s+(.+?)[?.!]?$/iu,
+    /(?:\u043f\u0440\u043e\u0432\u0435\u0440\u044c|\u043e\u0431\u044a\u044f\u0441\u043d\u0438).{0,50}(?:\u0434\u043e\u0441\u0442\u0443\u043f|\u043f\u0440\u0430\u0432).{0,20}(?:\u0443|\u0434\u043b\u044f)\s+(.+?)[?.!]?$/iu,
+    /(?:\u0435\u0441\u0442\u044c\s+\u043b\u0438|\u043c\u043e\u0436\u0435\u0442\s+\u043b\u0438).{0,50}(?:\u0434\u043e\u0441\u0442\u0443\u043f|\u0437\u0430\u0439\u0442\u0438).{0,20}(?:\u0443|\u0434\u043b\u044f)?\s*(.+?)[?.!]?$/iu,
     /why\s+does\s+(.+?)\s+not\s+have\s+(?:.+?\s+)?access/iu,
     /why\s+does(?:\s+not|n't|nt)?\s+(.+?)\s+have\s+(?:.+?\s+)?access/iu,
     /why\s+is\s+(.+?)\s+(?:without|missing|blocked\s+from)\s+(?:.+?\s+)?access/iu,
     /why\s+no\s+(?:.+?\s+)?access\s+for\s+(.+?)[?.!]?$/iu,
     /explain\s+(?:why\s+)?(.+?)\s+(?:has\s+no|does(?:\s+not|n't|nt)\s+have)\s+(?:.+?\s+)?access/iu,
-    /(?:access|доступ)\s+(?:status|explanation|state)?\s*(?:for|у|для)\s+(.+?)[?.!]?$/iu,
+    /(?:what|which)\s+(?:access|permissions?)\s+(?:is|are)\s+missing\s+(?:for|from)\s+(.+?)[?.!]?$/iu,
+    /(?:what|which).{0,20}(?:blocks|is blocking|prevents)\s+(.+?)\s+from\s+.+?[?.!]?$/iu,
+    /(?:what|which).{0,40}(?:blocks|is blocking|prevents).{0,40}(?:access|login).{0,20}(?:for|from)\s+(.+?)[?.!]?$/iu,
+    /(?:check|verify|diagnose|explain)\s+(.+?)['']?\s+(?:access|permissions?|wms|badge|email|login)\s*(?:status|state)?[?.!]?$/iu,
+    /(?:does|can)\s+(.+?)\s+(?:have|use|access|log\s+in\s+to)\s+(?:.+?\s+)?(?:access|wms|badge|email|account)[?.!]?$/iu,
+    /(?:access|\u0434\u043e\u0441\u0442\u0443\u043f)\s+(?:status|explanation|state)?\s*(?:for|\u0443|\u0434\u043b\u044f)\s+(.+?)[?.!]?$/iu,
   ];
 
   for (const pattern of patterns) {
     const match = pattern.exec(trimmed);
     if (match?.[1]) {
       const workerName = cleanWorkerName(match[1]);
-      return { workerName: workerName || null, target };
+      return { workerName: workerName || null, target, kind };
     }
   }
 
-  return { workerName: null, target };
+  return { workerName: null, target, kind };
+}
+
+export async function parseAccessQuestionIntent(
+  text: string,
+  model?: string,
+): Promise<ParsedAccessQuestion> {
+  const fallback = parseAccessQuestion(text);
+
+  try {
+    const llm = getLLM();
+    const parsed = await llm.completeJSON(
+      [
+        {
+          role: "system",
+          content: [
+            "Parse a warehouse access diagnostic question into JSON.",
+            "The user may write in any language.",
+            "",
+            "Return kind:",
+            "- why_missing: asks why a worker has no access, cannot log in, or is blocked.",
+            "- status: asks whether a worker has access or asks to check current access.",
+            "- missing: asks what access/permissions are missing.",
+            "- blockers: asks what blocks/prevents access provisioning.",
+            "- not_access_diagnosis: not about one worker's access diagnosis.",
+            "",
+            "workerName: exact worker full name or employee id mentioned by the user.",
+            "If a worker is named as EMP-022, output EMP-022.",
+            "",
+            "target: normalize the requested target access when present:",
+            "- WMS view/read: {systemCode:'wms', permissionCode:'view_only'}",
+            "- WMS receiving: {systemCode:'wms', permissionCode:'receive_inventory'}",
+            "- WMS dispatch/outbound: {systemCode:'wms', permissionCode:'dispatch_order'}",
+            "- WMS adjustment approval: {systemCode:'wms', permissionCode:'approve_adjustment'}",
+            "- floor/badge/entry: {systemCode:'badge', permissionCode:'entry'}",
+            "- badge admin: {systemCode:'badge', permissionCode:'admin'}",
+            "- email account creation: {systemCode:'email', permissionCode:'create_account'}",
+            "- email directory: {systemCode:'email', permissionCode:'view_directory'}",
+            "- shared warehouse ops account: {systemCode:'shared_account', permissionCode:'warehouse_ops'}",
+            "- if only the system is clear, set permissionCode null.",
+            "- if no target is clear, set target null.",
+            "",
+            "Output JSON only.",
+          ].join("\n"),
+        },
+        { role: "user", content: text.slice(0, 700) },
+      ],
+      LlmAccessQuestionSchema,
+      { temperature: 0, maxTokens: 300, model },
+    );
+
+    if (parsed.kind === "not_access_diagnosis") return fallback;
+
+    const workerName = cleanWorkerName(parsed.workerName ?? fallback.workerName ?? "");
+    return {
+      workerName: workerName || fallback.workerName,
+      target: normalizeLlmTarget(parsed, text) ?? fallback.target,
+      kind: parsed.kind,
+    };
+  } catch {
+    return fallback;
+  }
 }
 
 export function buildAccessExplanation(input: {
   question: string;
   target: AccessTarget | null;
+  kind?: AccessQuestionKind;
   worker: WorkerRow;
   access: AccessRow[];
   roleAccess: RolePermissionRow[];
@@ -187,67 +297,63 @@ export function buildAccessExplanation(input: {
   findings: Finding[];
   pendingProposals: PendingProposalRow[];
 }): AccessExplanationResult {
+  const kind = input.kind ?? inferQuestionKind(input.question);
   const activeAccess = input.access.filter((a) => a.status === "active");
   const inactiveAccess = input.access.filter((a) => a.status !== "active");
   const activeForTarget = activeAccess.filter((a) => matchesTarget(a, input.target));
   const inactiveForTarget = inactiveAccess.filter((a) => matchesTarget(a, input.target));
   const expectedForTarget = input.roleAccess.filter((a) => matchesTarget(a, input.target));
+  const missingExpected = expectedForTarget.filter(
+    (expected) => !activeAccess.some((active) => sameAccess(active, expected)),
+  );
   const targetLabel = input.target?.label ?? "warehouse system access";
   const reasons: string[] = [];
 
+  appendStatusReasons(reasons, input.worker);
+  reasons.push(...certificateReasons(input.worker.roleCode, input.certs));
+
+  if (kind === "missing") {
+    appendRoleExpectationReasons(reasons, input.worker, targetLabel, expectedForTarget, missingExpected, inactiveForTarget);
+    appendOtherAccessReason(reasons, activeAccess, activeForTarget);
+    appendProposalReason(reasons, input.pendingProposals);
+
+    const summary =
+      missingExpected.length > 0
+        ? `${input.worker.fullName} is missing ${missingExpected.length} role-template ${missingExpected.length === 1 ? "grant" : "grants"} for ${targetLabel}.`
+        : `${input.worker.fullName} is not missing role-template ${targetLabel}.`;
+
+    return toResult(input, {
+      activeAccess,
+      inactiveAccess,
+      summary,
+      reasons: reasons.length > 0 ? reasons : ["All matching role-template grants are active."],
+    });
+  }
+
   if (activeForTarget.length > 0) {
-    reasons.push(`Active grant found: ${formatAccessList(activeForTarget)}.`);
+    reasons.unshift(`Active grant found: ${formatAccessList(activeForTarget)}.`);
     if (input.findings.length > 0) {
       reasons.push(`Rule engine still flags: ${input.findings.map((f) => f.title).join("; ")}.`);
     }
+    if (missingExpected.length > 0 && kind === "blockers") {
+      reasons.push(`Still missing role-template grants: ${formatRoleAccessList(missingExpected)}.`);
+    }
+    reasons.push(
+      "If the worker still cannot use the downstream system, the issue is outside the access grants stored in UserHub, such as login sync, device assignment, or credentials.",
+    );
+    appendProposalReason(reasons, input.pendingProposals);
+
     return toResult(input, {
       activeAccess,
       inactiveAccess,
       summary: `${input.worker.fullName} currently has active ${targetLabel}.`,
-      reasons: [
-        ...reasons,
-        "If the worker still cannot use the downstream system, the issue is outside the access grants stored in UserHub, such as login sync, device assignment, or credentials.",
-      ],
+      reasons,
     });
   }
 
-  if (input.worker.status === "offboarded") {
-    reasons.push("Worker status is offboarded, so active access should be removed.");
-  } else if (input.worker.status === "suspended") {
-    reasons.push("Worker status is suspended, so access should stay blocked until the worker is reactivated.");
-  } else if (input.worker.status === "pending") {
-    reasons.push("Worker status is pending, so the profile is not fully active yet.");
-  }
-
-  const certReasons = certificateReasons(input.worker.roleCode, input.certs);
-  reasons.push(...certReasons);
-
-  if (expectedForTarget.length === 0) {
-    reasons.push(
-      `${input.worker.roleName} does not include ${targetLabel} in its default role template.`,
-    );
-  } else if (inactiveForTarget.length > 0) {
-    reasons.push(
-      `The role template includes ${targetLabel}, but the matching grant is not active: ${formatInactiveAccessList(inactiveForTarget)}.`,
-    );
-  } else {
-    reasons.push(
-      `The role template expects ${targetLabel}, but there is no matching active grant in user_access.`,
-    );
-    reasons.push(
-      "Most likely, the role template was not applied to this profile yet, the proposal is still waiting for approval, or access was not provisioned after the worker was created.",
-    );
-  }
-
-  if (activeAccess.length > 0) {
-    reasons.push(`Other active access exists: ${formatAccessList(activeAccess)}.`);
-  }
-
-  if (input.pendingProposals.length > 0) {
-    reasons.push(
-      `There ${input.pendingProposals.length === 1 ? "is" : "are"} ${input.pendingProposals.length} pending proposal${input.pendingProposals.length === 1 ? "" : "s"} for this worker.`,
-    );
-  }
+  appendRoleExpectationReasons(reasons, input.worker, targetLabel, expectedForTarget, missingExpected, inactiveForTarget);
+  appendOtherAccessReason(reasons, activeAccess, activeForTarget);
+  appendProposalReason(reasons, input.pendingProposals);
 
   if (reasons.length === 0) {
     reasons.push("No active access grant was found for the requested scope.");
@@ -405,33 +511,107 @@ function buildRuleContext(
 
 function inferTarget(text: string): AccessTarget | null {
   const lower = text.toLowerCase();
+  if (/\badjustment\b|\bapprove\b|\bapproval\b/i.test(lower)) {
+    return target("wms", "approve_adjustment");
+  }
+  if (/\breceiv(?:e|ing)|\binbound\b|\binventory receive/i.test(lower)) {
+    return target("wms", "receive_inventory");
+  }
+  if (/\bdispatch\b|\boutbound\b|\bship(?:ping)?\b/i.test(lower)) {
+    return target("wms", "dispatch_order");
+  }
+  if (/\bview[-_\s]?only\b|\bread[-_\s]?only\b|\bread\b/i.test(lower)) {
+    return target("wms", "view_only");
+  }
   if (/\bwms\b|warehouse management/i.test(lower)) {
-    return { systemCode: "wms", permissionCode: null, label: "WMS access" };
+    return target("wms", null);
   }
-  if (/\bbadge\b|\bfloor\b|\bentry\b|бейдж|бадж|пропуск|склад/iu.test(lower)) {
-    return {
-      systemCode: "badge",
-      permissionCode: "entry",
-      label: "floor badge access",
-    };
+  if (/\bbadge\s+admin\b|\bbadge administration\b/i.test(lower)) {
+    return target("badge", "admin");
   }
-  if (/\bemail\b|\bmail\b|почт/iu.test(lower)) {
-    return { systemCode: "email", permissionCode: null, label: "email access" };
+  if (/\bbadge\b|\bfloor\b|\bentry\b|\bdoor\b|\bphysical\b|\u0431\u0435\u0439\u0434\u0436|\u0431\u0430\u0434\u0436|\u043f\u0440\u043e\u043f\u0443\u0441\u043a|\u0441\u043a\u043b\u0430\u0434/iu.test(lower)) {
+    return target("badge", "entry");
   }
-  if (/\bshared\b|\bwarehouse[-_\s]?ops\b|общ/iu.test(lower)) {
-    return {
-      systemCode: "shared_account",
-      permissionCode: null,
-      label: "shared operational account access",
-    };
+  if (/\bcreate\b.{0,20}\bemail\b|\bemail account\b/i.test(lower)) {
+    return target("email", "create_account");
+  }
+  if (/\bdirectory\b/i.test(lower)) {
+    return target("email", "view_directory");
+  }
+  if (/\bemail\b|\bmail\b|\u043f\u043e\u0447\u0442/iu.test(lower)) {
+    return target("email", null);
+  }
+  if (/\bshared\b|\bwarehouse[-_\s]?ops\b|\u043e\u0431\u0449/iu.test(lower)) {
+    return target("shared_account", "warehouse_ops");
   }
   return null;
 }
 
+function inferQuestionKind(text: string): AccessQuestionKind {
+  const lower = text.toLowerCase();
+  if (/\bblock(?:s|ed|ing)?\b|\bprevent(?:s|ed|ing)?\b|\bwhy\s+can't\b|\u0431\u043b\u043e\u043a|\u043c\u0435\u0448\u0430/iu.test(lower)) {
+    return "blockers";
+  }
+  if (/\bwhat\b|\bwhich\b|\bmissing\b|\black(?:ing)?\b|\u043d\u0435\s+\u0445\u0432\u0430\u0442\u0430\u0435\u0442|\u043a\u0430\u043a\u0438\u0445/iu.test(lower)) {
+    return "missing";
+  }
+  if (/\bdoes\b|\bcan\b|\bcheck\b|\bverify\b|\bstatus\b|\u0435\u0441\u0442\u044c\s+\u043b\u0438|\u043c\u043e\u0436\u0435\u0442\s+\u043b\u0438|\u043f\u0440\u043e\u0432\u0435\u0440/iu.test(lower)) {
+    return "status";
+  }
+  return "why_missing";
+}
+
+function normalizeLlmTarget(parsed: LlmAccessQuestion, originalText: string): AccessTarget | null {
+  if (!parsed.target?.systemCode) return inferTarget(originalText);
+  const permissionCode =
+    parsed.target.permissionCode && permissionBelongsToSystem(parsed.target.systemCode, parsed.target.permissionCode)
+      ? parsed.target.permissionCode
+      : null;
+  return target(parsed.target.systemCode, permissionCode, parsed.target.label ?? undefined);
+}
+
+function target(systemCode: string, permissionCode: string | null, label?: string): AccessTarget {
+  return {
+    systemCode,
+    permissionCode,
+    label: label ?? labelForTarget(systemCode, permissionCode),
+  };
+}
+
+function labelForTarget(systemCode: string, permissionCode: string | null): string {
+  const fullCode = permissionCode ? `${systemCode}.${permissionCode}` : systemCode;
+  const labels: Record<string, string> = {
+    wms: "WMS access",
+    "wms.view_only": "WMS view-only access",
+    "wms.receive_inventory": "WMS receiving access",
+    "wms.dispatch_order": "WMS dispatch access",
+    "wms.approve_adjustment": "WMS adjustment approval access",
+    badge: "badge access",
+    "badge.entry": "floor badge access",
+    "badge.admin": "badge administration access",
+    email: "email access",
+    "email.create_account": "email account creation access",
+    "email.view_directory": "email directory access",
+    shared_account: "shared operational account access",
+    "shared_account.warehouse_ops": "shared warehouse ops account access",
+  };
+  return labels[fullCode] ?? `${systemCode}${permissionCode ? `.${permissionCode}` : ""} access`;
+}
+
+function permissionBelongsToSystem(systemCode: string, permissionCode: string): boolean {
+  const allowed: Record<string, string[]> = {
+    wms: ["view_only", "receive_inventory", "dispatch_order", "approve_adjustment"],
+    badge: ["entry", "admin"],
+    email: ["create_account", "view_directory"],
+    shared_account: ["warehouse_ops"],
+  };
+  return allowed[systemCode]?.includes(permissionCode) ?? false;
+}
+
 function cleanWorkerName(value: string): string {
   return value
-    .replace(/\s+(?:to|for)\s+(?:wms|badge|email|warehouse management|floor|entry|access).*$/i, "")
-    .replace(/\s+(?:wms|badge|email|warehouse management|floor|entry|access)$/i, "")
+    .replace(/\s+(?:to|for)\s+(?:wms|badge|email|warehouse management|floor|entry|access|permissions?|login|account).*$/i, "")
+    .replace(/\s+(?:wms|badge|email|warehouse management|floor|entry|access|permissions?|login|account)$/i, "")
     .replace(/[?.!,;:]+$/g, "")
     .replace(/^worker\s+/i, "")
     .trim()
@@ -440,12 +620,78 @@ function cleanWorkerName(value: string): string {
 
 function matchesTarget(
   item: { systemCode: string; permissionCode: string },
-  target: AccessTarget | null,
+  accessTarget: AccessTarget | null,
 ): boolean {
-  if (!target) return true;
-  if (target.systemCode && item.systemCode !== target.systemCode) return false;
-  if (target.permissionCode && item.permissionCode !== target.permissionCode) return false;
+  if (!accessTarget) return true;
+  if (accessTarget.systemCode && item.systemCode !== accessTarget.systemCode) return false;
+  if (accessTarget.permissionCode && item.permissionCode !== accessTarget.permissionCode) return false;
   return true;
+}
+
+function sameAccess(
+  left: { systemCode: string; permissionCode: string },
+  right: { systemCode: string; permissionCode: string },
+): boolean {
+  return left.systemCode === right.systemCode && left.permissionCode === right.permissionCode;
+}
+
+function appendStatusReasons(reasons: string[], worker: WorkerRow): void {
+  if (worker.status === "offboarded") {
+    reasons.push("Worker status is offboarded, so active access should be removed.");
+  } else if (worker.status === "suspended") {
+    reasons.push("Worker status is suspended, so access should stay blocked until the worker is reactivated.");
+  } else if (worker.status === "pending") {
+    reasons.push("Worker status is pending, so the profile is not fully active yet.");
+  }
+}
+
+function appendRoleExpectationReasons(
+  reasons: string[],
+  worker: WorkerRow,
+  targetLabel: string,
+  expectedForTarget: RolePermissionRow[],
+  missingExpected: RolePermissionRow[],
+  inactiveForTarget: AccessRow[],
+): void {
+  if (expectedForTarget.length === 0) {
+    reasons.push(`${worker.roleName} does not include ${targetLabel} in its default role template.`);
+    return;
+  }
+
+  if (missingExpected.length > 0) {
+    reasons.push(`Missing role-template grants: ${formatRoleAccessList(missingExpected)}.`);
+    if (inactiveForTarget.length > 0) {
+      reasons.push(`Matching historical grants are not active: ${formatInactiveAccessList(inactiveForTarget)}.`);
+    } else {
+      reasons.push(
+        "Most likely, the role template was not applied to this profile yet, the proposal is still waiting for approval, or access was not provisioned after the worker was created.",
+      );
+    }
+    return;
+  }
+
+  reasons.push(`All role-template grants for ${targetLabel} are active.`);
+}
+
+function appendOtherAccessReason(
+  reasons: string[],
+  activeAccess: AccessRow[],
+  activeForTarget: AccessRow[],
+): void {
+  if (activeAccess.length > 0 && activeForTarget.length === 0) {
+    reasons.push(`Other active access exists: ${formatAccessList(activeAccess)}.`);
+  }
+}
+
+function appendProposalReason(
+  reasons: string[],
+  pendingProposals: PendingProposalRow[],
+): void {
+  if (pendingProposals.length > 0) {
+    reasons.push(
+      `There ${pendingProposals.length === 1 ? "is" : "are"} ${pendingProposals.length} pending proposal${pendingProposals.length === 1 ? "" : "s"} for this worker.`,
+    );
+  }
 }
 
 function certificateReasons(roleCode: string, certs: CertificateRow[]): string[] {
@@ -597,6 +843,10 @@ function inactiveAccessSummary(row: AccessRow) {
 }
 
 function formatAccessList(rows: Array<{ systemCode: string; permissionCode: string }>): string {
+  return rows.map((row) => `${row.systemCode}.${row.permissionCode}`).join(", ");
+}
+
+function formatRoleAccessList(rows: RolePermissionRow[]): string {
   return rows.map((row) => `${row.systemCode}.${row.permissionCode}`).join(", ");
 }
 
