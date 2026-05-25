@@ -4,6 +4,7 @@ import { basename } from "path";
 import { revalidatePath } from "next/cache";
 import { requireOperator } from "@/lib/auth/operator";
 import { classifyIntent } from "@/lib/ai/classify";
+import { explainAccessQuestion } from "@/lib/ai/access-explain";
 import {
   extractWorkerProvisioningFromDocument,
   isSupportedDocumentMime,
@@ -23,6 +24,7 @@ import { type DocumentType } from "@/lib/validation/enums";
 import { z } from "zod";
 
 export type {
+  AccessExplanationResult,
   ChatResult,
   ErrorResult,
   ProposalResult,
@@ -87,6 +89,18 @@ export async function chatAction(formData: FormData): Promise<ChatResult> {
       return await persistChatResult(operator.id, text, {
         type: "error",
         message: `Query failed: ${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
+  }
+
+  if (intent === "access_explain") {
+    try {
+      const result = await explainAccessQuestion(text, operator.id);
+      return await persistChatResult(operator.id, text, result);
+    } catch (err) {
+      return await persistChatResult(operator.id, text, {
+        type: "error",
+        message: `Access explanation failed: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
   }
